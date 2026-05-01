@@ -23,10 +23,7 @@
     align-items: center;
     padding: 40px 20px;
   }
-  .header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
+  .header { text-align: center; margin-bottom: 30px; }
   .logo {
     font-size: 42px;
     font-weight: 900;
@@ -59,10 +56,7 @@
     color: var(--wine-dark);
   }
   .machine-info strong { color: var(--wine); }
-  .button-area {
-    text-align: center;
-    margin: 30px 0;
-  }
+  .button-area { text-align: center; margin: 30px 0 10px; }
   .talk-button {
     width: 160px;
     height: 160px;
@@ -77,9 +71,7 @@
     box-shadow: 0 12px 30px rgba(101, 29, 50, 0.35);
     user-select: none;
   }
-  .talk-button:hover {
-    transform: scale(1.05);
-  }
+  .talk-button:hover { transform: scale(1.05); }
   .talk-button:active,
   .talk-button.listening {
     background: #8b2845;
@@ -103,12 +95,69 @@
     100% { transform: rotate(360deg); }
   }
   .status {
-    margin-top: 20px;
+    margin-top: 16px;
     font-size: 14px;
     color: var(--wine);
     min-height: 22px;
     font-weight: 500;
+    text-align: center;
   }
+  .interim {
+    font-size: 13px;
+    color: var(--wine);
+    opacity: 0.6;
+    font-style: italic;
+    min-height: 18px;
+    margin-top: 8px;
+    text-align: center;
+  }
+  .chat-input-area {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cream-dark);
+  }
+  .chat-input-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--wine);
+    opacity: 0.6;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .chat-form {
+    display: flex;
+    gap: 8px;
+  }
+  .chat-input {
+    flex: 1;
+    padding: 14px 18px;
+    border: 2px solid var(--cream-dark);
+    border-radius: 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--cream);
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
+  .chat-input:focus { border-color: var(--wine); }
+  .chat-send {
+    padding: 14px 22px;
+    background: var(--wine);
+    color: var(--cream);
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .chat-send:hover { background: var(--wine-dark); }
+  .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
   .conversation {
     margin-top: 24px;
     max-height: 280px;
@@ -175,10 +224,7 @@
     cursor: pointer;
     transition: background 0.2s;
   }
-  .example:hover {
-    background: var(--wine);
-    color: var(--cream);
-  }
+  .example:hover { background: var(--wine); color: var(--cream); }
 </style>
 </head>
 <body>
@@ -201,10 +247,25 @@
       <span id="btnLabel">🎤<br>HABLAR</span>
     </button>
     <div class="status" id="status">Aprietá el botón y hablale</div>
+    <div class="interim" id="interim"></div>
+  </div>
+
+  <div class="chat-input-area">
+    <div class="chat-input-label">— o escribí tu pregunta —</div>
+    <form class="chat-form" id="chatForm">
+      <input
+        type="text"
+        class="chat-input"
+        id="chatInput"
+        placeholder="Ejemplo: ¿Cómo limpio la lente?"
+        autocomplete="off"
+      >
+      <button type="submit" class="chat-send" id="chatSend">Enviar</button>
+    </form>
   </div>
 
   <div class="examples">
-    <div class="examples-title">Ejemplos para probar (click o decilo)</div>
+    <div class="examples-title">Ejemplos rápidos (tocá para probar)</div>
     <span class="example" onclick="quickAsk(this.innerText)">¿Cómo limpio la lente?</span>
     <span class="example" onclick="quickAsk(this.innerText)">¿Qué potencia para acrílico de 5mm?</span>
     <span class="example" onclick="quickAsk(this.innerText)">¿Puedo cortar PVC?</span>
@@ -216,19 +277,19 @@
   <div class="conversation" id="conversation">
     <div class="msg cevi">
       <div class="msg-label">CeVi</div>
-      Hola Carlos, soy CeVi, tu asistente. Probá apretar el botón y preguntarme algo, o tocá uno de los ejemplos arriba.
+      Hola Carlos, soy CeVi, tu asistente. Probá apretar el botón y preguntarme algo, o escribí en el cuadro de abajo.
     </div>
   </div>
 </div>
 
 <div class="footer">
   Demo standalone — voz nativa del navegador (no Edge TTS Dalia ni Claude todavía).<br>
-  Cuando tengamos hardware ESP32 + backend en Railway, la voz será mucho mejor y respuestas las genera Claude Haiku con tu KB completa.
+  En producción: Whisper Large v3 + Claude Haiku 4.5 + Edge TTS Dalia con SN real desde Odoo.
 </div>
 
 <script>
 // ────────────────────────────────────────────
-// KB v1 — mismo contenido que c4v.machine_voice_kb (24 entradas)
+// KB v1 — 24 entradas (mismo contenido que c4v.machine_voice_kb)
 // ────────────────────────────────────────────
 const KB = [
   { keywords: ['encender','prender','iniciar','chiller','estabilizador'], answer: "Verifica tres cosas en este orden: el estabilizador de voltaje encendido, el chiller con agua destilada en marcha, y luego sí enciende la máquina. Nunca prendas el láser sin el chiller activo, eso quema el tubo láser." },
@@ -242,12 +303,12 @@ const KB = [
   { keywords: ['acrilico','5mm','cinco milimetros'], answer: "Para acrílico de cinco milímetros, configura potencia sesenta por ciento, velocidad ocho milímetros por segundo. Empieza en cincuenta y ajusta según el primer corte." },
   { keywords: ['materiales','cortar','grabar','madera','que materiales','que puedo'], answer: "Tu C4V Láser corta y graba madera, MDF, acrílico, cartón, cuero, tela, papel y caucho. No cortes PVC, ni metales, ni plásticos espumados sin verificar primero." },
   { keywords: ['empezar','primer corte','principiante','grosor','grueso','delgado'], answer: "Siempre empieza con material delgado, alrededor de tres milímetros, mientras aprendes. Cuando ya domines los parámetros básicos, escalas a grosores mayores." },
-  { keywords: ['limpiar','lente','espejos','alcohol','isopropilico','mantenimiento lente'], answer: "Retira la lente con cuidado. Aplica alcohol isopropílico con un hisopo de alta calidad. Movimiento circular suave, sin presión. La misma técnica para los tres espejos. Hazlo cada dos semanas si usas la máquina diario." },
+  { keywords: ['limpiar','lente','espejos','alcohol','isopropilico'], answer: "Retira la lente con cuidado. Aplica alcohol isopropílico con un hisopo de alta calidad. Movimiento circular suave, sin presión. La misma técnica para los tres espejos. Hazlo cada dos semanas si usas la máquina diario." },
   { keywords: ['agua','chiller','destilada','grifo','vistony','enfriamiento'], answer: "Solo agua destilada. Nunca agua del grifo. Los minerales del agua común obstruyen el sistema y dañan el tubo láser. Cambio cada dos a cuatro semanas según uso." },
   { keywords: ['temperatura','grados','frio','calor'], answer: "La temperatura ideal del chiller es entre quince y veinticinco grados Celsius. Si sube de veinticinco, apaga la máquina y deja enfriar." },
   { keywords: ['rieles','lubricar','aceite','3en1','cabezal','mover'], answer: "Limpia primero los rieles con paño de microfibra. Aplica unas gotas de aceite tres en uno, marca tres-en-uno solamente. Después mueve el cabezal manualmente para distribuir. Hazlo semanal si usas diario." },
   { keywords: ['frecuencia','cada cuanto','rutina','calendario'], answer: "Diario: limpieza de superficie. Semanal: lubricar rieles. Cada dos semanas: limpiar lente y espejos. Mensual: cambiar agua del chiller." },
-  { keywords: ['kit','herramientas','hisopo','microfibra','vistony'], answer: "Cinco materiales: galón de agua destilada Vistony, aceite tres en uno, alcohol isopropílico, hisopos de alta calidad y paño de microfibra sin pelusa." },
+  { keywords: ['kit','herramientas','hisopo','microfibra'], answer: "Cinco materiales: galón de agua destilada Vistony, aceite tres en uno, alcohol isopropílico, hisopos de alta calidad y paño de microfibra sin pelusa." },
   { keywords: ['alarma','error','panel','codigo','ruida'], answer: "Apaga la máquina inmediatamente. Revisa las conexiones eléctricas, el chiller, y las conexiones de agua. Si la alarma persiste tras reiniciar, llama al soporte." },
   { keywords: ['no corta','potencia baja','debil','tubo','sucia'], answer: "Probablemente la lente está sucia. Una lente con residuos absorbe la energía láser y reduce la potencia efectiva. Limpia con alcohol isopropílico y movimiento circular. Si sigue débil, el tubo puede estar agotado, llama soporte." },
   { keywords: ['sin chiller','quemar','urgente','grave'], answer: "Apaga la máquina inmediatamente. Si el láser estuvo activo más de diez segundos sin enfriamiento, posiblemente dañaste el tubo. Llama urgente al soporte +51 924 662 205." },
@@ -259,43 +320,72 @@ const KB = [
 ];
 
 // ────────────────────────────────────────────
-// Speech recognition + synthesis
+// State
 // ────────────────────────────────────────────
 const btn = document.getElementById('talkBtn');
 const status = document.getElementById('status');
+const interim = document.getElementById('interim');
 const conversation = document.getElementById('conversation');
 const btnLabel = document.getElementById('btnLabel');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
 
-let recognition;
+let recognition = null;
 let isListening = false;
+let gotResult = false;  // ← FIX: track si Web Speech detectó algo antes de end
 
+// ────────────────────────────────────────────
+// Speech recognition (con fix del bug "queda pensando")
+// ────────────────────────────────────────────
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'es-MX';
-  recognition.interimResults = false;
+  recognition.interimResults = true;   // ← muestra texto en vivo
+  recognition.continuous = false;
   recognition.maxAlternatives = 1;
 
   recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    handleQuery(transcript);
+    let interimText = '';
+    let finalText = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalText += transcript;
+      else interimText += transcript;
+    }
+    if (interimText) interim.textContent = '"' + interimText + '..."';
+    if (finalText) {
+      gotResult = true;
+      interim.textContent = '';
+      handleQuery(finalText.trim());
+    }
   };
 
   recognition.onerror = (event) => {
-    setIdle('Error: ' + event.error + '. ¿Permitiste el micrófono?');
+    console.error('Speech error:', event.error);
+    if (event.error === 'no-speech') {
+      setIdle('No te escuché. Apretá de nuevo y hablá más fuerte.');
+    } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+      setIdle('Necesito permiso del micrófono. Recargá la página y permití.');
+    } else if (event.error === 'audio-capture') {
+      setIdle('No encuentro micrófono. Revisá que esté conectado.');
+    } else {
+      setIdle('Error: ' + event.error);
+    }
   };
 
   recognition.onend = () => {
-    if (isListening) {
-      btn.classList.remove('listening');
-      btnLabel.innerHTML = '🤔<br>PENSANDO';
-      btn.classList.add('thinking');
-      isListening = false;
+    if (isListening && !gotResult) {
+      // FIX: se quedaba en "PENSANDO" para siempre — ahora resetea
+      setIdle('No te escuché. Apretá y hablá, o escribí abajo.');
     }
+    isListening = false;
   };
 } else {
-  status.innerText = 'Tu Chrome necesita Web Speech API. Probá en Chrome desktop.';
+  status.textContent = 'Tu navegador no soporta voz. Usá el chat de abajo.';
   btn.disabled = true;
+  btn.style.opacity = '0.4';
 }
 
 btn.addEventListener('click', () => {
@@ -304,25 +394,55 @@ btn.addEventListener('click', () => {
     recognition.stop();
     return;
   }
+  // Cortar TTS si estaba hablando
+  speechSynthesis.cancel();
   isListening = true;
+  gotResult = false;
+  btn.classList.remove('thinking', 'speaking');
   btn.classList.add('listening');
-  btnLabel.innerHTML = '🎙️<br>ESCUCHANDO';
-  status.innerText = 'Hablá ahora...';
-  recognition.start();
+  btnLabel.innerHTML = '🎙️<br>ESCUCHO';
+  status.textContent = 'Hablá ahora...';
+  interim.textContent = '';
+  try {
+    recognition.start();
+  } catch (e) {
+    setIdle('Error al iniciar. Apretá de nuevo.');
+  }
 });
 
+// ────────────────────────────────────────────
+// Chat input
+// ────────────────────────────────────────────
+chatForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = chatInput.value.trim();
+  if (!text) return;
+  chatInput.value = '';
+  // Cortar voz/TTS si estaba activo
+  if (recognition && isListening) recognition.stop();
+  speechSynthesis.cancel();
+  handleQuery(text);
+});
+
+// ────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────
 function setIdle(msg) {
   btn.classList.remove('listening', 'thinking', 'speaking');
   btnLabel.innerHTML = '🎤<br>HABLAR';
-  status.innerText = msg || 'Aprietá el botón y hablale';
+  status.textContent = msg || 'Aprietá el botón y hablale';
+  interim.textContent = '';
   isListening = false;
+  gotResult = false;
 }
 
 function handleQuery(transcript) {
   addMessage('user', transcript);
-  status.innerText = 'Buscando respuesta...';
+  btn.classList.remove('listening');
+  btn.classList.add('thinking');
+  btnLabel.innerHTML = '🤔<br>PIENSO';
+  status.textContent = 'Buscando respuesta...';
 
-  // Match keywords contra KB
   const lower = transcript.toLowerCase();
   let bestMatch = null;
   let bestScore = 0;
@@ -344,22 +464,21 @@ function handleQuery(transcript) {
     response = "Eso no lo tengo registrado. Te recomiendo llamar al soporte +51 924 662 205 o consultarlo en C4V School.";
   }
 
-  setTimeout(() => speak(response), 600);
+  setTimeout(() => speak(response), 400);
 }
 
 function speak(text) {
   addMessage('cevi', text);
   btn.classList.remove('thinking');
   btn.classList.add('speaking');
-  btnLabel.innerHTML = '🔊<br>HABLANDO';
-  status.innerText = 'CeVi te habla...';
+  btnLabel.innerHTML = '🔊<br>HABLO';
+  status.textContent = 'CeVi te habla...';
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'es-MX';
   utterance.rate = 1.0;
   utterance.pitch = 1.0;
 
-  // Buscar voz femenina española disponible
   const voices = speechSynthesis.getVoices();
   const preferred = voices.find(v =>
     v.lang.startsWith('es') &&
@@ -368,10 +487,18 @@ function speak(text) {
   if (preferred) utterance.voice = preferred;
 
   utterance.onend = () => setIdle();
+  utterance.onerror = () => setIdle();
   speechSynthesis.speak(utterance);
+
+  // Safety: si no hay voces aún (caso raro), resetear en 8s
+  setTimeout(() => {
+    if (btn.classList.contains('speaking')) setIdle();
+  }, Math.max(text.length * 80, 5000));
 }
 
 function quickAsk(text) {
+  speechSynthesis.cancel();
+  if (recognition && isListening) recognition.stop();
   handleQuery(text);
 }
 
@@ -383,7 +510,6 @@ function addMessage(role, text) {
   conversation.scrollTop = conversation.scrollHeight;
 }
 
-// Pre-cargar voces
 speechSynthesis.onvoiceschanged = () => {};
 </script>
 </body>
