@@ -292,31 +292,34 @@
 // KB v1 — 24 entradas (mismo contenido que c4v.machine_voice_kb)
 // ────────────────────────────────────────────
 const KB = [
-  { keywords: ['encender','prender','iniciar','chiller','estabilizador'], answer: "Verifica tres cosas en este orden: el estabilizador de voltaje encendido, el chiller con agua destilada en marcha, y luego sí enciende la máquina. Nunca prendas el láser sin el chiller activo, eso quema el tubo láser." },
-  { keywords: ['pvc','toxico','cloro','peligro','prohibido'], answer: "No, nunca cortes PVC. Genera gas cloro tóxico que daña la máquina y es peligroso para tu salud. Materiales seguros: madera, MDF, acrílico, cartón, cuero, tela, papel y caucho." },
-  { keywords: ['gafas','mirar','laser','visor','proteccion','ojos'], answer: "No mires directamente al haz láser. La puerta de la máquina ya tiene protección UV incorporada, ese es tu visor seguro. Solo opera la máquina con la tapa cerrada." },
-  { keywords: ['extractor','humos','ventilacion','gases','toxicos'], answer: "Sí, obligatorio. Los gases que salen del corte láser son tóxicos. Nunca operes sin extractor conectado y funcionando." },
-  { keywords: ['soporte','telefono','whatsapp','contacto','llamar','numero'], answer: "El número de soporte oficial de C4V Láser es +51 924 662 205. Atención por WhatsApp en horario de Perú. También puedes llamar al fijo 905474440." },
-  { keywords: ['live','tiktok','en vivo','horario','transmision'], answer: "Los lives de C4V Láser en TikTok son lunes a viernes a la una de la tarde y a las seis de la tarde. Los sábados a las once y media de la mañana. La cuenta es arroba c4v laser." },
-  { keywords: ['capacitacion','curso','school','aprender','irene'], answer: "Sí, Carlos. Cuando compraste tu máquina obtuviste acceso gratuito de por vida a C4V School. Allí están todos los cursos: primeros pasos, mantenimiento, parámetros y más." },
-  { keywords: ['mdf','tres','milimetros','potencia mdf','3mm'], answer: "Para MDF de tres milímetros, configura potencia entre veinte y treinta y cinco por ciento, velocidad entre quince y veinticinco milímetros por segundo. Empieza en veinte y veinte y ajusta según el resultado del primer corte." },
-  { keywords: ['acrilico','5mm','cinco milimetros'], answer: "Para acrílico de cinco milímetros, configura potencia sesenta por ciento, velocidad ocho milímetros por segundo. Empieza en cincuenta y ajusta según el primer corte." },
-  { keywords: ['materiales','cortar','grabar','madera','que materiales','que puedo'], answer: "Tu C4V Láser corta y graba madera, MDF, acrílico, cartón, cuero, tela, papel y caucho. No cortes PVC, ni metales, ni plásticos espumados sin verificar primero." },
-  { keywords: ['empezar','primer corte','principiante','grosor','grueso','delgado'], answer: "Siempre empieza con material delgado, alrededor de tres milímetros, mientras aprendes. Cuando ya domines los parámetros básicos, escalas a grosores mayores." },
-  { keywords: ['limpiar','lente','espejos','alcohol','isopropilico'], answer: "Retira la lente con cuidado. Aplica alcohol isopropílico con un hisopo de alta calidad. Movimiento circular suave, sin presión. La misma técnica para los tres espejos. Hazlo cada dos semanas si usas la máquina diario." },
-  { keywords: ['agua','chiller','destilada','grifo','vistony','enfriamiento'], answer: "Solo agua destilada. Nunca agua del grifo. Los minerales del agua común obstruyen el sistema y dañan el tubo láser. Cambio cada dos a cuatro semanas según uso." },
-  { keywords: ['temperatura','grados','frio','calor'], answer: "La temperatura ideal del chiller es entre quince y veinticinco grados Celsius. Si sube de veinticinco, apaga la máquina y deja enfriar." },
-  { keywords: ['rieles','lubricar','aceite','3en1','cabezal','mover'], answer: "Limpia primero los rieles con paño de microfibra. Aplica unas gotas de aceite tres en uno, marca tres-en-uno solamente. Después mueve el cabezal manualmente para distribuir. Hazlo semanal si usas diario." },
-  { keywords: ['frecuencia','cada cuanto','rutina','calendario'], answer: "Diario: limpieza de superficie. Semanal: lubricar rieles. Cada dos semanas: limpiar lente y espejos. Mensual: cambiar agua del chiller." },
-  { keywords: ['kit','herramientas','hisopo','microfibra'], answer: "Cinco materiales: galón de agua destilada Vistony, aceite tres en uno, alcohol isopropílico, hisopos de alta calidad y paño de microfibra sin pelusa." },
-  { keywords: ['alarma','error','panel','codigo','ruida'], answer: "Apaga la máquina inmediatamente. Revisa las conexiones eléctricas, el chiller, y las conexiones de agua. Si la alarma persiste tras reiniciar, llama al soporte." },
-  { keywords: ['no corta','potencia baja','debil','tubo','sucia'], answer: "Probablemente la lente está sucia. Una lente con residuos absorbe la energía láser y reduce la potencia efectiva. Limpia con alcohol isopropílico y movimiento circular. Si sigue débil, el tubo puede estar agotado, llama soporte." },
-  { keywords: ['sin chiller','quemar','urgente','grave'], answer: "Apaga la máquina inmediatamente. Si el láser estuvo activo más de diez segundos sin enfriamiento, posiblemente dañaste el tubo. Llama urgente al soporte +51 924 662 205." },
-  { keywords: ['voltaje','220','circuito','tierra'], answer: "Doscientos veinte voltios, en circuito independiente con cable de tierra. No la conectes en zapatillas con otros equipos. El estabilizador de voltaje es obligatorio." },
-  { keywords: ['preparar','antes','llegar','recibir','setup','instalacion'], answer: "Línea de doscientos veinte voltios, circuito independiente, cable de tierra, área limpia y ventilada, extintor, espacio para extractor de humos, y el kit de mantenimiento listo." },
-  { keywords: ['quien','c4v','empresa','marca','sebastian'], answer: "C4V es una empresa peruana liderada por Sebastian Contreras. Importación directa desde China, capacitación con Irene Velasco que tiene treinta y cinco años formando emprendedores, y comunidad de más de sesenta mil personas." },
-  { keywords: ['incluye','beneficios','compra','reci'], answer: "Tu máquina C4V incluye: capacitación de por vida en C4V School, soporte técnico en español por WhatsApp, garantía RECI doble en el tubo láser, comunidad de sesenta mil emprendedores, y asesora dedicada para tu país." },
-  { keywords: ['garantia','vigencia','vence','warranty'], answer: "Sí Carlos, tu garantía vence el quince de junio del dos mil veintisiete. Faltan ocho meses." },
+  { keywords: ['encender','prender','iniciar','arrancar','empezar','encendida','prendida','prendo','enciendo','chiller','estabilizador','orden','primero','antes'], answer: "Verifica tres cosas en este orden: el estabilizador de voltaje encendido, el chiller con agua destilada en marcha, y luego sí enciende la máquina. Nunca prendas el láser sin el chiller activo, eso quema el tubo láser." },
+  { keywords: ['pvc','toxico','cloro','peligro','prohibido','plastico','no debo cortar','no cortar','no se puede'], answer: "No, nunca cortes PVC. Genera gas cloro tóxico que daña la máquina y es peligroso para tu salud. Materiales seguros: madera, MDF, acrílico, cartón, cuero, tela, papel y caucho." },
+  { keywords: ['gafas','mirar','visor','protección','proteccion','ojos','vista','seguridad','ver','observar','tapa','puerta'], answer: "No mires directamente al haz láser. La puerta de la máquina ya tiene protección UV incorporada, ese es tu visor seguro. Solo opera la máquina con la tapa cerrada." },
+  { keywords: ['extractor','humos','humo','ventilación','ventilacion','gases','toxico','olor','aire','airear'], answer: "Sí, obligatorio. Los gases que salen del corte láser son tóxicos. Nunca operes sin extractor conectado y funcionando." },
+  { keywords: ['soporte','teléfono','telefono','whatsapp','contacto','contactar','llamar','número','numero','ayuda','asistencia','llamo','llamada','quien'], answer: "El número de soporte oficial de C4V Láser es +51 924 662 205. Atención por WhatsApp en horario de Perú. También puedes llamar al fijo 905474440." },
+  { keywords: ['live','tiktok','en vivo','horario','transmisión','transmision','directo','redes','red social'], answer: "Los lives de C4V Láser en TikTok son lunes a viernes a la una de la tarde y a las seis de la tarde. Los sábados a las once y media de la mañana. La cuenta es arroba c4v laser." },
+  { keywords: ['capacitación','capacitacion','curso','cursos','school','aprender','aprendizaje','irene','escuela','academia','tutorial','enseñar','enseñame'], answer: "Sí, Carlos. Cuando compraste tu máquina obtuviste acceso gratuito de por vida a C4V School. Allí están todos los cursos: primeros pasos, mantenimiento, parámetros y más." },
+  { keywords: ['mdf','3mm','tres milímetros','tres milimetros','3 milimetros','3 mm','potencia mdf','velocidad mdf','cortar mdf','grabar mdf'], answer: "Para MDF de tres milímetros, configura potencia entre veinte y treinta y cinco por ciento, velocidad entre quince y veinticinco milímetros por segundo. Empieza en veinte y veinte y ajusta según el resultado del primer corte." },
+  { keywords: ['acrilico','acrílico','5mm','cinco milimetros','cinco milímetros','5 mm','potencia acrilico','velocidad acrilico','cortar acrilico'], answer: "Para acrílico de cinco milímetros, configura potencia sesenta por ciento, velocidad ocho milímetros por segundo. Empieza en cincuenta y ajusta según el primer corte." },
+  { keywords: ['materiales','material','cortar','corto','grabar','grabo','grabado','que puedo','que materiales','que puede','qué puedo','que se puede','madera','cuero','tela','papel','cartón','carton','caucho'], answer: "Tu C4V Láser corta y graba madera, MDF, acrílico, cartón, cuero, tela, papel y caucho. No cortes PVC, ni metales, ni plásticos espumados sin verificar primero." },
+  { keywords: ['empezar','empezando','arrancar','principiante','grosor','grueso','delgado','primero','primer','primera','recién','recien'], answer: "Siempre empieza con material delgado, alrededor de tres milímetros, mientras aprendes. Cuando ya domines los parámetros básicos, escalas a grosores mayores." },
+  { keywords: ['limpiar','limpio','limpia','limpieza','limpiando','lente','lentes','espejo','espejos','alcohol','isopropilico','isopropílico','hisopo','sucio','sucia'], answer: "Retira la lente con cuidado. Aplica alcohol isopropílico con un hisopo de alta calidad. Movimiento circular suave, sin presión. La misma técnica para los tres espejos. Hazlo cada dos semanas si usas la máquina diario." },
+  { keywords: ['agua','chiller','destilada','destilado','grifo','caño','vistony','enfriamiento','refrigeración','refrigeracion','enfriar'], answer: "Solo agua destilada. Nunca agua del grifo. Los minerales del agua común obstruyen el sistema y dañan el tubo láser. Cambio cada dos a cuatro semanas según uso." },
+  { keywords: ['temperatura','grados','frio','frío','calor','caliente','sobrecalentamiento','quema','quemar','quemado'], answer: "La temperatura ideal del chiller es entre quince y veinticinco grados Celsius. Si sube de veinticinco, apaga la máquina y deja enfriar." },
+  { keywords: ['rieles','riel','lubricar','lubricación','lubricacion','aceite','3en1','3 en 1','tres en uno','cabezal','mover','engranaje','mecanismo'], answer: "Limpia primero los rieles con paño de microfibra. Aplica unas gotas de aceite tres en uno, marca tres-en-uno solamente. Después mueve el cabezal manualmente para distribuir. Hazlo semanal si usas diario." },
+  { keywords: ['frecuencia','cada cuanto','cada cuándo','rutina','calendario','horario','plan','mantenimiento','cuidado','cuidar'], answer: "Diario: limpieza de superficie. Semanal: lubricar rieles. Cada dos semanas: limpiar lente y espejos. Mensual: cambiar agua del chiller." },
+  { keywords: ['kit','herramientas','hisopo','microfibra','vistony','accesorios','que necesito','qué necesito','comprar','tener'], answer: "Cinco materiales: galón de agua destilada Vistony, aceite tres en uno, alcohol isopropílico, hisopos de alta calidad y paño de microfibra sin pelusa." },
+  { keywords: ['alarma','error','panel','código','codigo','ruida','falla','fallo','problema','no funciona','suena','pita','pitido','rojo','luz roja'], answer: "Apaga la máquina inmediatamente. Revisa las conexiones eléctricas, el chiller, y las conexiones de agua. Si la alarma persiste tras reiniciar, llama al soporte." },
+  { keywords: ['no corta','no estoy cortando','potencia baja','debil','débil','tubo','sucia','no esta cortando','flojo','suave','perdió fuerza','perdio fuerza'], answer: "Probablemente la lente está sucia. Una lente con residuos absorbe la energía láser y reduce la potencia efectiva. Limpia con alcohol isopropílico y movimiento circular. Si sigue débil, el tubo puede estar agotado, llama soporte." },
+  { keywords: ['sin chiller','olvide chiller','olvidé chiller','encendí sin','encendi sin','prendí sin','prendi sin','quemar','quemé','queme','urgente','grave','accidente'], answer: "Apaga la máquina inmediatamente. Si el láser estuvo activo más de diez segundos sin enfriamiento, posiblemente dañaste el tubo. Llama urgente al soporte +51 924 662 205." },
+  { keywords: ['voltaje','220','220v','volts','luz','corriente','circuito','tierra','conexión','conexion','enchufe','tomacorriente'], answer: "Doscientos veinte voltios, en circuito independiente con cable de tierra. No la conectes en zapatillas con otros equipos. El estabilizador de voltaje es obligatorio." },
+  { keywords: ['preparar','antes','llegar','recibir','setup','instalación','instalacion','instalar','espacio','requisitos','que necesito antes'], answer: "Línea de doscientos veinte voltios, circuito independiente, cable de tierra, área limpia y ventilada, extintor, espacio para extractor de humos, y el kit de mantenimiento listo." },
+  { keywords: ['quien','quién','c4v','empresa','marca','sebastian','dueño','irene','peruana','peru','perú','origen','historia','quienes son'], answer: "C4V es una empresa peruana liderada por Sebastian Contreras. Importación directa desde China, capacitación con Irene Velasco que tiene treinta y cinco años formando emprendedores, y comunidad de más de sesenta mil personas." },
+  { keywords: ['incluye','incluído','incluido','beneficios','beneficio','compra','reci','que viene','qué viene','garantia','garantía','soporte incluido','que recibo','qué recibo'], answer: "Tu máquina C4V incluye: capacitación de por vida en C4V School, soporte técnico en español por WhatsApp, garantía RECI doble en el tubo láser, comunidad de sesenta mil emprendedores, y asesora dedicada para tu país." },
+  { keywords: ['garantía','garantia','vigente','vigencia','vence','vencer','warranty','cuanto tiempo','cuánto tiempo','protegido','protegida'], answer: "Sí Carlos, tu garantía vence el quince de junio del dos mil veintisiete. Faltan ocho meses." },
+  { keywords: ['hola','holi','hey','buenas','buenos dias','buenos días','buenas tardes','buenas noches','saludos'], answer: "Hola Carlos, qué bueno saludarte. Soy CeVi, tu asistente integrado. ¿En qué te puedo ayudar con tu máquina hoy?" },
+  { keywords: ['gracias','agradecido','agradezco','muchas gracias'], answer: "Con gusto, Carlos. Para eso estoy. Cualquier otra cosa, acá ando." },
+  { keywords: ['como estas','cómo estás','que tal','qué tal','todo bien','funcionando'], answer: "Todo bien Carlos, listo para ayudarte. Tu máquina está funcionando correctamente. ¿Qué necesitas?" },
 ];
 
 // ────────────────────────────────────────────
@@ -436,6 +439,33 @@ function setIdle(msg) {
   gotResult = false;
 }
 
+// Normaliza texto: lowercase + sin tildes + sin signos
+function normalize(text) {
+  return text
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')  // quita tildes
+    .replace(/[¿?¡!.,;:'"()]/g, ' ')                    // quita puntuación
+    .replace(/\s+/g, ' ')                                // collapse espacios
+    .trim();
+}
+
+// Stemming muy básico: trunca palabras largas a raíz aproximada
+function stem(word) {
+  if (word.length <= 4) return word;
+  // Remove suffixes comunes en español
+  const suffixes = ['es','as','os','ar','er','ir','ado','ido','ando','iendo','mente','cion','ciones','aria','ario','idad','ista','mos','mos','an','en'];
+  for (const s of suffixes) {
+    if (word.endsWith(s) && word.length - s.length >= 4) {
+      return word.slice(0, -s.length);
+    }
+  }
+  return word.slice(0, Math.min(word.length, 6));
+}
+
+function tokensOf(text) {
+  return normalize(text).split(' ').filter(w => w.length >= 3).map(stem);
+}
+
 function handleQuery(transcript) {
   addMessage('user', transcript);
   btn.classList.remove('listening');
@@ -443,13 +473,26 @@ function handleQuery(transcript) {
   btnLabel.innerHTML = '🤔<br>PIENSO';
   status.textContent = 'Buscando respuesta...';
 
-  const lower = transcript.toLowerCase();
+  const userTokens = tokensOf(transcript);
   let bestMatch = null;
   let bestScore = 0;
+
   for (const item of KB) {
     let score = 0;
-    for (const kw of item.keywords) {
-      if (lower.includes(kw)) score++;
+    // KB keywords ya están en español, las normalizamos también
+    const kwTokens = item.keywords.flatMap(k => tokensOf(k));
+    for (const userTok of userTokens) {
+      for (const kwTok of kwTokens) {
+        // Match exacto stemming
+        if (userTok === kwTok) {
+          score += 2;
+        }
+        // Match parcial: una raíz contiene la otra
+        else if (userTok.length >= 4 && kwTok.length >= 4 &&
+                 (userTok.startsWith(kwTok) || kwTok.startsWith(userTok))) {
+          score += 1;
+        }
+      }
     }
     if (score > bestScore) {
       bestScore = score;
@@ -457,14 +500,15 @@ function handleQuery(transcript) {
     }
   }
 
+  console.log('Tokens usuario:', userTokens, '· Mejor score:', bestScore);
+
   let response;
-  if (bestMatch && bestScore > 0) {
+  if (bestMatch && bestScore >= 2) {
     response = bestMatch.answer;
   } else {
-    response = "Eso no lo tengo registrado. Te recomiendo llamar al soporte +51 924 662 205 o consultarlo en C4V School.";
+    response = "Esa pregunta no la tengo cargada en el demo, pero en producción Claude la responde con todo el conocimiento de tu máquina. Probá con: cómo limpio la lente, qué materiales corto, cuál es el número de soporte, qué potencia para acrílico de 5 milímetros, mi garantía.";
   }
 
-  // Llamar speak inmediatamente (sin setTimeout) para no romper user gesture en iOS Safari
   speak(response);
 }
 
