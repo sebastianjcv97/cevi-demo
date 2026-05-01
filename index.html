@@ -464,7 +464,8 @@ function handleQuery(transcript) {
     response = "Eso no lo tengo registrado. Te recomiendo llamar al soporte +51 924 662 205 o consultarlo en C4V School.";
   }
 
-  setTimeout(() => speak(response), 400);
+  // Llamar speak inmediatamente (sin setTimeout) para no romper user gesture en iOS Safari
+  speak(response);
 }
 
 function speak(text) {
@@ -474,26 +475,54 @@ function speak(text) {
   btnLabel.innerHTML = '🔊<br>HABLO';
   status.textContent = 'CeVi te habla...';
 
+  // Verificar que TTS está disponible
+  if (!('speechSynthesis' in window)) {
+    setIdle('Tu navegador no tiene voz. La respuesta está arriba en texto.');
+    return;
+  }
+
+  const voices = speechSynthesis.getVoices();
+  if (voices.length === 0) {
+    // Sin voces — Chrome en China sin acceso a Google Voice Engine
+    setIdle('⚠️ No hay voces TTS disponibles. Mostré la respuesta en texto. (Tocá el botón 🔊 al lado del mensaje para reintentar)');
+    return;
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'es-MX';
   utterance.rate = 1.0;
   utterance.pitch = 1.0;
+  utterance.volume = 1.0;  // explícito máximo
 
-  const voices = speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.lang.startsWith('es') &&
-    (v.name.includes('Mónica') || v.name.includes('Paulina') || v.name.includes('Esperanza') || v.name.toLowerCase().includes('female'))
-  ) || voices.find(v => v.lang.startsWith('es'));
+  // Preferencia: voz español femenina → cualquier español → cualquier voz
+  const preferred =
+    voices.find(v => v.lang.startsWith('es') && (v.name.includes('Mónica') || v.name.includes('Paulina') || v.name.includes('Esperanza') || v.name.toLowerCase().includes('female'))) ||
+    voices.find(v => v.lang.startsWith('es')) ||
+    voices.find(v => v.default) ||
+    voices[0];
   if (preferred) utterance.voice = preferred;
 
   utterance.onend = () => setIdle();
-  utterance.onerror = () => setIdle();
+  utterance.onerror = (e) => {
+    console.error('TTS error:', e);
+    setIdle('Error al reproducir voz. La respuesta está en texto.');
+  };
+
+  speechSynthesis.cancel();
   speechSynthesis.speak(utterance);
 
-  // Safety: si no hay voces aún (caso raro), resetear en 8s
+  // Safety: timeout máximo
   setTimeout(() => {
     if (btn.classList.contains('speaking')) setIdle();
   }, Math.max(text.length * 80, 5000));
+}
+
+// Reproduce manualmente un mensaje de CeVi (fallback si TTS automático falló)
+function replayMessage(text, btnEl) {
+  speechSynthesis.cancel();
+  if (btnEl) btnEl.textContent = '⏵ Reproduciendo...';
+  speak(text);
+  setTimeout(() => { if (btnEl) btnEl.textContent = '🔊 Reproducir'; }, 1500);
 }
 
 function quickAsk(text) {
@@ -505,12 +534,42 @@ function quickAsk(text) {
 function addMessage(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.innerHTML = '<div class="msg-label">' + (role === 'user' ? 'Tú' : 'CeVi') + '</div>' + text;
+  let html = '<div class="msg-label">' + (role === 'user' ? 'Tú' : 'CeVi') + '</div>' + escapeHtml(text);
+  // Agregar botón "Reproducir" al lado de cada respuesta de CeVi (fallback manual TTS)
+  if (role === 'cevi') {
+    html += '<div style="margin-top:8px"><button onclick="replayMessage(this.dataset.text, this)" data-text="' + escapeHtml(text).replace(/"/g, '&quot;') + '" style="background:rgba(253,244,227,0.2);border:1px solid rgba(253,244,227,0.4);color:var(--cream);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;font-family:inherit">🔊 Reproducir</button></div>';
+  }
+  div.innerHTML = html;
   conversation.appendChild(div);
   conversation.scrollTop = conversation.scrollHeight;
 }
 
-speechSynthesis.onvoiceschanged = () => {};
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Cargar voces disponibles al inicio (algunos navegadores las cargan async)
+let voicesLoaded = false;
+function checkVoices() {
+  const v = speechSynthesis.getVoices();
+  if (v.length > 0 && !voicesLoaded) {
+    voicesLoaded = true;
+    console.log('Voces TTS cargadas:', v.length, '— español:', v.filter(x => x.lang.startsWith('es')).length);
+  }
+}
+speechSynthesis.onvoiceschanged = checkVoices;
+checkVoices();
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const v = speechSynthesis.getVoices();
+    if (v.length === 0) {
+      const w = document.createElement('div');
+      w.style.cssText = 'background:#fff3cd;color:#856404;padding:12px 16px;border-radius:12px;margin-bottom:16px;font-size:13px;border:1px solid #ffeaa7';
+      w.innerHTML = '⚠️ <strong>Tu navegador no tiene voces TTS instaladas.</strong> Las respuestas se muestran en texto. En la versión final, las voces vienen del backend (Edge TTS Dalia mexicana) y no dependen del navegador.';
+      document.querySelector('.card').insertBefore(w, document.querySelector('.machine-info').nextSibling);
+    }
+  }, 1500);
+});
 </script>
 </body>
 </html>
