@@ -323,6 +323,13 @@ const KB = [
 ];
 
 // ────────────────────────────────────────────
+// CONFIG
+// ────────────────────────────────────────────
+// URL del backend Railway. Si está vacía, usa modo offline (KB local).
+// Cuando deployes, cambiá esto a la URL Railway: https://cevi-backend-XXXX.up.railway.app
+const BACKEND_URL = ''; // ← actualizar con URL Railway después del deploy
+
+// ────────────────────────────────────────────
 // State
 // ────────────────────────────────────────────
 const btn = document.getElementById('talkBtn');
@@ -466,50 +473,92 @@ function tokensOf(text) {
   return normalize(text).split(' ').filter(w => w.length >= 3).map(stem);
 }
 
-function handleQuery(transcript) {
+async function handleQuery(transcript) {
   addMessage('user', transcript);
   btn.classList.remove('listening');
   btn.classList.add('thinking');
   btnLabel.innerHTML = '🤔<br>PIENSO';
   status.textContent = 'Buscando respuesta...';
 
+  // Si tenemos backend Railway, usar Claude real
+  if (BACKEND_URL) {
+    try {
+      const r = await fetch(BACKEND_URL + '/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          message: transcript,
+          machine_id: 'DEMO-9060-001',
+          customer_name: 'Carlos',
+          customer_city: 'Bogotá',
+          customer_country: 'Colombia'
+        })
+      });
+      const data = await r.json();
+      if (data.response) {
+        // Reproduzco con TTS server-side (Dalia mexicana via /tts)
+        await speakViaBackend(data.response);
+        return;
+      } else {
+        console.warn('Backend error:', data);
+      }
+    } catch (e) {
+      console.warn('Backend offline, fallback a KB local:', e);
+    }
+  }
+
+  // Fallback: match local con KB hardcoded
   const userTokens = tokensOf(transcript);
   let bestMatch = null;
   let bestScore = 0;
 
   for (const item of KB) {
     let score = 0;
-    // KB keywords ya están en español, las normalizamos también
     const kwTokens = item.keywords.flatMap(k => tokensOf(k));
     for (const userTok of userTokens) {
       for (const kwTok of kwTokens) {
-        // Match exacto stemming
-        if (userTok === kwTok) {
-          score += 2;
-        }
-        // Match parcial: una raíz contiene la otra
+        if (userTok === kwTok) score += 2;
         else if (userTok.length >= 4 && kwTok.length >= 4 &&
-                 (userTok.startsWith(kwTok) || kwTok.startsWith(userTok))) {
-          score += 1;
-        }
+                 (userTok.startsWith(kwTok) || kwTok.startsWith(userTok))) score += 1;
       }
     }
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = item;
-    }
+    if (score > bestScore) { bestScore = score; bestMatch = item; }
   }
-
-  console.log('Tokens usuario:', userTokens, '· Mejor score:', bestScore);
 
   let response;
   if (bestMatch && bestScore >= 2) {
     response = bestMatch.answer;
   } else {
-    response = "Esa pregunta no la tengo cargada en el demo, pero en producción Claude la responde con todo el conocimiento de tu máquina. Probá con: cómo limpio la lente, qué materiales corto, cuál es el número de soporte, qué potencia para acrílico de 5 milímetros, mi garantía.";
+    response = "Esa pregunta no la tengo cargada en este demo offline, pero en producción Claude la responde con todo el conocimiento de tu máquina.";
   }
-
   speak(response);
+}
+
+// TTS server-side: descarga MP3 de Dalia mexicana del backend y lo reproduce
+async function speakViaBackend(text) {
+  addMessage('cevi', text);
+  btn.classList.remove('thinking');
+  btn.classList.add('speaking');
+  btnLabel.innerHTML = '🔊<br>HABLO';
+  status.textContent = 'CeVi te habla (Dalia mx)...';
+
+  try {
+    const r = await fetch(BACKEND_URL + '/tts', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text: text})
+    });
+    if (!r.ok) throw new Error('TTS HTTP ' + r.status);
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => { setIdle(); URL.revokeObjectURL(url); };
+    audio.onerror = () => { setIdle('Error reproduciendo audio del backend'); URL.revokeObjectURL(url); };
+    await audio.play();
+  } catch (e) {
+    console.error('Backend TTS error, fallback a TTS browser:', e);
+    speak(text);  // fallback voz nativa
+  }
 }
 
 function speak(text) {
