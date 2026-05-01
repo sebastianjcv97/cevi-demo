@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CeVi Voice — Demo</title>
+<style>
+  :root {
+    --wine: #651D32;
+    --wine-dark: #4a1424;
+    --cream: #FDF4E3;
+    --cream-dark: #e8dcc7;
+    --text: #2a1219;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .logo {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--wine);
+  }
+  .tagline {
+    font-size: 14px;
+    color: var(--wine);
+    opacity: 0.7;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .card {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 540px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(101, 29, 50, 0.12);
+    margin-bottom: 20px;
+  }
+  .machine-info {
+    background: var(--cream-dark);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--wine-dark);
+  }
+  .machine-info strong { color: var(--wine); }
+  .button-area {
+    text-align: center;
+    margin: 30px 0;
+  }
+  .talk-button {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: var(--wine);
+    color: var(--cream);
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 12px 30px rgba(101, 29, 50, 0.35);
+    user-select: none;
+  }
+  .talk-button:hover {
+    transform: scale(1.05);
+  }
+  .talk-button:active,
+  .talk-button.listening {
+    background: #8b2845;
+    transform: scale(0.95);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .talk-button.thinking {
+    background: #b88a2a;
+    animation: spin 2s linear infinite;
+  }
+  .talk-button.speaking {
+    background: #2a8b54;
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 12px 30px rgba(101, 29, 50, 0.35); }
+    50% { box-shadow: 0 0 60px rgba(101, 29, 50, 0.6); }
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .status {
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--wine);
+    min-height: 22px;
+    font-weight: 500;
+  }
+  .conversation {
+    margin-top: 24px;
+    max-height: 280px;
+    overflow-y: auto;
+    border-top: 1px solid var(--cream-dark);
+    padding-top: 20px;
+  }
+  .msg {
+    padding: 12px 16px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .msg.user {
+    background: var(--cream-dark);
+    color: var(--wine-dark);
+    border-bottom-right-radius: 4px;
+    margin-left: 30px;
+    text-align: right;
+  }
+  .msg.cevi {
+    background: var(--wine);
+    color: var(--cream);
+    border-bottom-left-radius: 4px;
+    margin-right: 30px;
+  }
+  .msg-label {
+    font-size: 10px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--wine);
+    opacity: 0.5;
+    max-width: 540px;
+  }
+  .examples {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cream-dark);
+  }
+  .examples-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--wine);
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+  .example {
+    display: inline-block;
+    background: var(--cream-dark);
+    color: var(--wine-dark);
+    padding: 6px 12px;
+    margin: 3px;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .example:hover {
+    background: var(--wine);
+    color: var(--cream);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">CeVi</div>
+  <div class="tagline">C4V Laser · Asistente de Voz</div>
+</div>
+
+<div class="card">
+  <div class="machine-info">
+    <strong>Máquina:</strong> C4V 6090 PRO IA TEC ·
+    <strong>Cliente demo:</strong> Carlos · <strong>LATAM</strong>
+    <br>
+    <strong>SN:</strong> DEMO-9060-001 · <strong>Garantía:</strong> vigente
+  </div>
+
+  <div class="button-area">
+    <button class="talk-button" id="talkBtn">
+      <span id="btnLabel">🎤<br>HABLAR</span>
+    </button>
+    <div class="status" id="status">Aprietá el botón y hablale</div>
+  </div>
+
+  <div class="examples">
+    <div class="examples-title">Ejemplos para probar (click o decilo)</div>
+    <span class="example" onclick="quickAsk(this.innerText)">¿Cómo limpio la lente?</span>
+    <span class="example" onclick="quickAsk(this.innerText)">¿Qué potencia para acrílico de 5mm?</span>
+    <span class="example" onclick="quickAsk(this.innerText)">¿Puedo cortar PVC?</span>
+    <span class="example" onclick="quickAsk(this.innerText)">¿Cuál es el número de soporte?</span>
+    <span class="example" onclick="quickAsk(this.innerText)">¿Mi garantía sigue vigente?</span>
+    <span class="example" onclick="quickAsk(this.innerText)">¿Qué materiales puedo cortar?</span>
+  </div>
+
+  <div class="conversation" id="conversation">
+    <div class="msg cevi">
+      <div class="msg-label">CeVi</div>
+      Hola Carlos, soy CeVi, tu asistente. Probá apretar el botón y preguntarme algo, o tocá uno de los ejemplos arriba.
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Demo standalone — voz nativa del navegador (no Edge TTS Dalia ni Claude todavía).<br>
+  Cuando tengamos hardware ESP32 + backend en Railway, la voz será mucho mejor y respuestas las genera Claude Haiku con tu KB completa.
+</div>
+
+<script>
+// ────────────────────────────────────────────
+// KB v1 — mismo contenido que c4v.machine_voice_kb (24 entradas)
+// ────────────────────────────────────────────
+const KB = [
+  { keywords: ['encender','prender','iniciar','chiller','estabilizador'], answer: "Verifica tres cosas en este orden: el estabilizador de voltaje encendido, el chiller con agua destilada en marcha, y luego sí enciende la máquina. Nunca prendas el láser sin el chiller activo, eso quema el tubo láser." },
+  { keywords: ['pvc','toxico','cloro','peligro','prohibido'], answer: "No, nunca cortes PVC. Genera gas cloro tóxico que daña la máquina y es peligroso para tu salud. Materiales seguros: madera, MDF, acrílico, cartón, cuero, tela, papel y caucho." },
+  { keywords: ['gafas','mirar','laser','visor','proteccion','ojos'], answer: "No mires directamente al haz láser. La puerta de la máquina ya tiene protección UV incorporada, ese es tu visor seguro. Solo opera la máquina con la tapa cerrada." },
+  { keywords: ['extractor','humos','ventilacion','gases','toxicos'], answer: "Sí, obligatorio. Los gases que salen del corte láser son tóxicos. Nunca operes sin extractor conectado y funcionando." },
+  { keywords: ['soporte','telefono','whatsapp','contacto','llamar','numero'], answer: "El número de soporte oficial de C4V Láser es +51 924 662 205. Atención por WhatsApp en horario de Perú. También puedes llamar al fijo 905474440." },
+  { keywords: ['live','tiktok','en vivo','horario','transmision'], answer: "Los lives de C4V Láser en TikTok son lunes a viernes a la una de la tarde y a las seis de la tarde. Los sábados a las once y media de la mañana. La cuenta es arroba c4v laser." },
+  { keywords: ['capacitacion','curso','school','aprender','irene'], answer: "Sí, Carlos. Cuando compraste tu máquina obtuviste acceso gratuito de por vida a C4V School. Allí están todos los cursos: primeros pasos, mantenimiento, parámetros y más." },
+  { keywords: ['mdf','tres','milimetros','potencia mdf','3mm'], answer: "Para MDF de tres milímetros, configura potencia entre veinte y treinta y cinco por ciento, velocidad entre quince y veinticinco milímetros por segundo. Empieza en veinte y veinte y ajusta según el resultado del primer corte." },
+  { keywords: ['acrilico','5mm','cinco milimetros'], answer: "Para acrílico de cinco milímetros, configura potencia sesenta por ciento, velocidad ocho milímetros por segundo. Empieza en cincuenta y ajusta según el primer corte." },
+  { keywords: ['materiales','cortar','grabar','madera','que materiales','que puedo'], answer: "Tu C4V Láser corta y graba madera, MDF, acrílico, cartón, cuero, tela, papel y caucho. No cortes PVC, ni metales, ni plásticos espumados sin verificar primero." },
+  { keywords: ['empezar','primer corte','principiante','grosor','grueso','delgado'], answer: "Siempre empieza con material delgado, alrededor de tres milímetros, mientras aprendes. Cuando ya domines los parámetros básicos, escalas a grosores mayores." },
+  { keywords: ['limpiar','lente','espejos','alcohol','isopropilico','mantenimiento lente'], answer: "Retira la lente con cuidado. Aplica alcohol isopropílico con un hisopo de alta calidad. Movimiento circular suave, sin presión. La misma técnica para los tres espejos. Hazlo cada dos semanas si usas la máquina diario." },
+  { keywords: ['agua','chiller','destilada','grifo','vistony','enfriamiento'], answer: "Solo agua destilada. Nunca agua del grifo. Los minerales del agua común obstruyen el sistema y dañan el tubo láser. Cambio cada dos a cuatro semanas según uso." },
+  { keywords: ['temperatura','grados','frio','calor'], answer: "La temperatura ideal del chiller es entre quince y veinticinco grados Celsius. Si sube de veinticinco, apaga la máquina y deja enfriar." },
+  { keywords: ['rieles','lubricar','aceite','3en1','cabezal','mover'], answer: "Limpia primero los rieles con paño de microfibra. Aplica unas gotas de aceite tres en uno, marca tres-en-uno solamente. Después mueve el cabezal manualmente para distribuir. Hazlo semanal si usas diario." },
+  { keywords: ['frecuencia','cada cuanto','rutina','calendario'], answer: "Diario: limpieza de superficie. Semanal: lubricar rieles. Cada dos semanas: limpiar lente y espejos. Mensual: cambiar agua del chiller." },
+  { keywords: ['kit','herramientas','hisopo','microfibra','vistony'], answer: "Cinco materiales: galón de agua destilada Vistony, aceite tres en uno, alcohol isopropílico, hisopos de alta calidad y paño de microfibra sin pelusa." },
+  { keywords: ['alarma','error','panel','codigo','ruida'], answer: "Apaga la máquina inmediatamente. Revisa las conexiones eléctricas, el chiller, y las conexiones de agua. Si la alarma persiste tras reiniciar, llama al soporte." },
+  { keywords: ['no corta','potencia baja','debil','tubo','sucia'], answer: "Probablemente la lente está sucia. Una lente con residuos absorbe la energía láser y reduce la potencia efectiva. Limpia con alcohol isopropílico y movimiento circular. Si sigue débil, el tubo puede estar agotado, llama soporte." },
+  { keywords: ['sin chiller','quemar','urgente','grave'], answer: "Apaga la máquina inmediatamente. Si el láser estuvo activo más de diez segundos sin enfriamiento, posiblemente dañaste el tubo. Llama urgente al soporte +51 924 662 205." },
+  { keywords: ['voltaje','220','circuito','tierra'], answer: "Doscientos veinte voltios, en circuito independiente con cable de tierra. No la conectes en zapatillas con otros equipos. El estabilizador de voltaje es obligatorio." },
+  { keywords: ['preparar','antes','llegar','recibir','setup','instalacion'], answer: "Línea de doscientos veinte voltios, circuito independiente, cable de tierra, área limpia y ventilada, extintor, espacio para extractor de humos, y el kit de mantenimiento listo." },
+  { keywords: ['quien','c4v','empresa','marca','sebastian'], answer: "C4V es una empresa peruana liderada por Sebastian Contreras. Importación directa desde China, capacitación con Irene Velasco que tiene treinta y cinco años formando emprendedores, y comunidad de más de sesenta mil personas." },
+  { keywords: ['incluye','beneficios','compra','reci'], answer: "Tu máquina C4V incluye: capacitación de por vida en C4V School, soporte técnico en español por WhatsApp, garantía RECI doble en el tubo láser, comunidad de sesenta mil emprendedores, y asesora dedicada para tu país." },
+  { keywords: ['garantia','vigencia','vence','warranty'], answer: "Sí Carlos, tu garantía vence el quince de junio del dos mil veintisiete. Faltan ocho meses." },
+];
+
+// ────────────────────────────────────────────
+// Speech recognition + synthesis
+// ────────────────────────────────────────────
+const btn = document.getElementById('talkBtn');
+const status = document.getElementById('status');
+const conversation = document.getElementById('conversation');
+const btnLabel = document.getElementById('btnLabel');
+
+let recognition;
+let isListening = false;
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'es-MX';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    handleQuery(transcript);
+  };
+
+  recognition.onerror = (event) => {
+    setIdle('Error: ' + event.error + '. ¿Permitiste el micrófono?');
+  };
+
+  recognition.onend = () => {
+    if (isListening) {
+      btn.classList.remove('listening');
+      btnLabel.innerHTML = '🤔<br>PENSANDO';
+      btn.classList.add('thinking');
+      isListening = false;
+    }
+  };
+} else {
+  status.innerText = 'Tu Chrome necesita Web Speech API. Probá en Chrome desktop.';
+  btn.disabled = true;
+}
+
+btn.addEventListener('click', () => {
+  if (!recognition) return;
+  if (isListening) {
+    recognition.stop();
+    return;
+  }
+  isListening = true;
+  btn.classList.add('listening');
+  btnLabel.innerHTML = '🎙️<br>ESCUCHANDO';
+  status.innerText = 'Hablá ahora...';
+  recognition.start();
+});
+
+function setIdle(msg) {
+  btn.classList.remove('listening', 'thinking', 'speaking');
+  btnLabel.innerHTML = '🎤<br>HABLAR';
+  status.innerText = msg || 'Aprietá el botón y hablale';
+  isListening = false;
+}
+
+function handleQuery(transcript) {
+  addMessage('user', transcript);
+  status.innerText = 'Buscando respuesta...';
+
+  // Match keywords contra KB
+  const lower = transcript.toLowerCase();
+  let bestMatch = null;
+  let bestScore = 0;
+  for (const item of KB) {
+    let score = 0;
+    for (const kw of item.keywords) {
+      if (lower.includes(kw)) score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = item;
+    }
+  }
+
+  let response;
+  if (bestMatch && bestScore > 0) {
+    response = bestMatch.answer;
+  } else {
+    response = "Eso no lo tengo registrado. Te recomiendo llamar al soporte +51 924 662 205 o consultarlo en C4V School.";
+  }
+
+  setTimeout(() => speak(response), 600);
+}
+
+function speak(text) {
+  addMessage('cevi', text);
+  btn.classList.remove('thinking');
+  btn.classList.add('speaking');
+  btnLabel.innerHTML = '🔊<br>HABLANDO';
+  status.innerText = 'CeVi te habla...';
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-MX';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+
+  // Buscar voz femenina española disponible
+  const voices = speechSynthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.lang.startsWith('es') &&
+    (v.name.includes('Mónica') || v.name.includes('Paulina') || v.name.includes('Esperanza') || v.name.toLowerCase().includes('female'))
+  ) || voices.find(v => v.lang.startsWith('es'));
+  if (preferred) utterance.voice = preferred;
+
+  utterance.onend = () => setIdle();
+  speechSynthesis.speak(utterance);
+}
+
+function quickAsk(text) {
+  handleQuery(text);
+}
+
+function addMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = '<div class="msg-label">' + (role === 'user' ? 'Tú' : 'CeVi') + '</div>' + text;
+  conversation.appendChild(div);
+  conversation.scrollTop = conversation.scrollHeight;
+}
+
+// Pre-cargar voces
+speechSynthesis.onvoiceschanged = () => {};
+</script>
+</body>
+</html>
