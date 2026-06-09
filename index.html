@@ -362,7 +362,8 @@ let discardSession = false;     // cancelar sin procesar (ej. el user escribió)
 let silenceTimer = null;        // corta tras silencio
 let noSpeechTimer = null;       // corta si nunca habla
 let maxListenTimer = null;      // tope duro
-let currentAudio = null;        // audio TTS del backend en curso
+let currentAudio = null;        // <audio> TTS de fallback en curso
+let currentSource = null;       // AudioBufferSourceNode (Web Audio) en curso
 
 // ────────────────────────────────────────────
 // Earcons — sonidos de mic ON / OFF (Web Audio API, sin archivos)
@@ -436,6 +437,12 @@ function stopMicMeter() {
   const bar = document.getElementById('micMeterBar');
   if (wrap) wrap.style.display = 'none';
   if (bar) bar.style.width = '0%';
+}
+
+// Detiene cualquier voz de CeVi en curso (Web Audio o <audio> fallback)
+function stopCurrentAudio() {
+  if (currentSource) { try { currentSource.onended = null; currentSource.stop(); } catch (e) {} currentSource = null; }
+  stopCurrentAudio();
 }
 
 // ────────────────────────────────────────────
@@ -557,7 +564,7 @@ btn.addEventListener('click', () => {
 
   // Cortar cualquier voz/TTS en curso
   speechSynthesis.cancel();
-  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  stopCurrentAudio();
 
   // Reset del estado de la sesión de escucha
   stopRequested = false;
@@ -593,7 +600,7 @@ chatForm.addEventListener('submit', (e) => {
   // Descartar el mic sin procesar la voz (el user prefirió escribir)
   cancelListening();
   speechSynthesis.cancel();
-  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  stopCurrentAudio();
   handleQuery(text);
 });
 
@@ -717,13 +724,20 @@ async function playViaBackend(text) {
       body: JSON.stringify({text: stripMarkdown(text)})
     });
     if (!r.ok) throw new Error('TTS HTTP ' + r.status);
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    currentAudio = audio;
-    audio.onended = () => { currentAudio = null; setIdle(); URL.revokeObjectURL(url); };
-    audio.onerror = () => { currentAudio = null; setIdle('Error reproduciendo audio del backend'); URL.revokeObjectURL(url); };
-    await audio.play();
+
+    // Reproducir por Web Audio: el AudioContext YA se desbloqueó cuando tocaste
+    // el botón (el earcon), así que esto NO lo frena el autoplay del navegador
+    // (que es lo que hacía que "no dijera nada" hasta tocar el mic de nuevo).
+    const arrayBuf = await r.arrayBuffer();
+    const ctx = getAudioCtx();
+    const audioBuf = await ctx.decodeAudioData(arrayBuf);
+    stopCurrentAudio();
+    const src = ctx.createBufferSource();
+    src.buffer = audioBuf;
+    src.connect(ctx.destination);
+    src.onended = () => { if (currentSource === src) { currentSource = null; setIdle(); } };
+    currentSource = src;
+    src.start();
   } catch (e) {
     console.error('Backend TTS error, fallback a TTS browser:', e);
     playBrowserTTS(text);  // fallback voz nativa (NO re-agrega mensaje)
@@ -782,7 +796,7 @@ function playBrowserTTS(text) {
 // Reproduce manualmente un mensaje de CeVi (fallback si TTS automático falló)
 function replayMessage(text, btnEl) {
   speechSynthesis.cancel();
-  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  stopCurrentAudio();
   if (btnEl) btnEl.textContent = '⏵ Reproduciendo...';
   if (BACKEND_URL) playViaBackend(text); else playBrowserTTS(text);
   setTimeout(() => { if (btnEl) btnEl.textContent = '🔊 Reproducir'; }, 1500);
@@ -790,7 +804,7 @@ function replayMessage(text, btnEl) {
 
 function quickAsk(text) {
   speechSynthesis.cancel();
-  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  stopCurrentAudio();
   cancelListening();
   handleQuery(text);
 }
