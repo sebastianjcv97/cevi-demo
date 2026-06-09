@@ -10,10 +10,10 @@
 
   :root {
     --wine: #651D32;
-    --coral: #FF6F61;
+    --coral: #F5402F;     /* rojo-anaranjado vivo (antes salmón) */
     --gold: #F4B740;
-    --rose: #FF8FA3;
-    --magenta: #E0457A;
+    --red: #E5253A;       /* rojo intenso */
+    --magenta: #C01029;   /* rojo profundo (antes rosa) */
     --ink: #4a1424;
     --ink-dim: rgba(74, 20, 36, 0.58);
     --ink-faint: rgba(74, 20, 36, 0.10);
@@ -33,16 +33,16 @@
   .bg {
     position: fixed; inset: 0; z-index: -2;
     background:
-      radial-gradient(55% 45% at 50% 10%, rgba(244,183,64,0.34), transparent 60%),
-      radial-gradient(60% 55% at 84% 88%, rgba(255,143,163,0.38), transparent 60%),
-      radial-gradient(55% 55% at 10% 80%, rgba(255,111,97,0.24), transparent 60%),
-      linear-gradient(160deg, #FFF8EF 0%, #FFEDE3 55%, #FFF0F3 100%);
+      radial-gradient(55% 45% at 50% 10%, rgba(244,183,64,0.36), transparent 60%),
+      radial-gradient(60% 55% at 84% 88%, rgba(229,37,58,0.26), transparent 62%),
+      radial-gradient(55% 55% at 10% 80%, rgba(245,64,47,0.22), transparent 60%),
+      linear-gradient(160deg, #FFF8EF 0%, #FFECE2 55%, #FFEFEA 100%);
   }
   .bg::after {
     content: ""; position: absolute; inset: -20%;
     background:
-      radial-gradient(34% 34% at 28% 30%, rgba(244,183,64,0.20), transparent 70%),
-      radial-gradient(40% 40% at 76% 66%, rgba(255,143,163,0.22), transparent 70%);
+      radial-gradient(34% 34% at 28% 30%, rgba(244,183,64,0.22), transparent 70%),
+      radial-gradient(40% 40% at 76% 66%, rgba(229,37,58,0.20), transparent 70%);
     animation: drift 32s ease-in-out infinite alternate;
   }
   @keyframes drift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(4%, -3%) scale(1.1); } }
@@ -57,8 +57,8 @@
   .brand span { color: var(--ink-dim); font-weight: 700; letter-spacing: 2px; font-size: 10px; text-transform: uppercase; }
   .badge {
     font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;
-    color: #b8431f; border: 1px solid rgba(255,111,97,0.5);
-    padding: 5px 11px; border-radius: 999px; background: rgba(255,111,97,0.10);
+    color: #C01029; border: 1px solid rgba(229,37,58,0.5);
+    padding: 5px 11px; border-radius: 999px; background: rgba(229,37,58,0.10);
   }
 
   main { flex: 1; width: 100%; max-width: 640px; padding: 8px 24px 40px; display: flex; flex-direction: column; align-items: center; }
@@ -71,12 +71,12 @@
     width: 190px; height: 190px; border-radius: 50%;
     animation: breathe 6.8s ease-in-out infinite;
     transform: scale(calc(var(--breath) * (1 + var(--level) * 0.15)));
-    background: radial-gradient(circle at 38% 30%, #FFFEFA 0%, #FFE0A0 22%, #FF9C7A 52%, var(--magenta) 100%);
+    background: radial-gradient(circle at 38% 30%, #FFFDF6 0%, #FFD074 20%, #F5402F 52%, var(--magenta) 100%);
     box-shadow:
-      0 0 calc(38px + var(--level) * 105px) rgba(255,140,120, calc(0.42 + var(--level) * 0.42)),
-      0 16px 48px rgba(224,69,122,0.26),
-      inset -14px -18px 44px rgba(193,38,90,0.42),
-      inset 14px 16px 40px rgba(255,255,255,0.7);
+      0 0 calc(38px + var(--level) * 108px) rgba(245,64,47, calc(0.44 + var(--level) * 0.42)),
+      0 16px 48px rgba(192,16,41,0.30),
+      inset -14px -18px 44px rgba(150,12,33,0.45),
+      inset 14px 16px 40px rgba(255,255,255,0.72);
     transition: box-shadow .14s linear;
   }
   .orb::before {
@@ -101,7 +101,7 @@
 
   .orb-label { font-size: 13px; font-weight: 700; letter-spacing: .3px; color: var(--ink); opacity: .9; }
   .status { margin-top: 14px; font-size: 14px; color: var(--ink-dim); min-height: 20px; text-align: center; transition: color .3s; }
-  .interim { margin-top: 10px; font-size: 16px; font-style: italic; color: #c2265a; min-height: 24px; text-align: center; max-width: 460px; line-height: 1.4; }
+  .interim { margin-top: 10px; font-size: 16px; font-style: italic; color: #C81E36; min-height: 24px; text-align: center; max-width: 460px; line-height: 1.4; }
 
   /* ───────── CONVERSACIÓN ───────── */
   .conversation {
@@ -119,7 +119,7 @@
     border: 1px solid rgba(244,183,64,0.5); border-bottom-left-radius: 5px;
     box-shadow: 0 6px 18px rgba(224,69,122,0.10);
   }
-  .msg.cevi strong { color: #c2265a; }
+  .msg.cevi strong { color: #C81E36; }
   .replay { margin-top: 9px; background: rgba(244,183,64,0.14); border: 1px solid rgba(244,183,64,0.5); color: #b8431f; padding: 4px 11px; border-radius: 9px; font-size: 11px; cursor: pointer; font-family: inherit; transition: background .2s; }
   .replay:hover { background: rgba(244,183,64,0.28); }
 
