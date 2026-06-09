@@ -283,8 +283,8 @@
 </div>
 
 <div class="footer">
-  Demo standalone — voz nativa del navegador (no Edge TTS Dalia ni Claude todavía).<br>
-  En producción: Whisper Large v3 + Claude Haiku 4.5 + Edge TTS Dalia con SN real desde Odoo.
+  Tocá el botón: un sonido confirma que el mic se activó. Hablá y, al callarte, se apaga solo (otro sonido). También podés tocar el botón de nuevo para cortar.<br>
+  Motor: Claude Haiku 4.5 + voz Dalia (Edge TTS) vía backend. En producción: SN real desde Odoo + Whisper Large v3.
 </div>
 
 <script>
@@ -329,6 +329,11 @@ const KB = [
 // Si el backend cae, fallback automático a KB local hardcoded.
 const BACKEND_URL = 'https://cevi-backend-general.up.railway.app';
 
+// Timing de escucha — lo controlamos NOSOTROS, no el navegador.
+const SILENCE_AFTER_SPEECH_MS = 1800;  // tras dejar de hablar, corta el mic solo
+const NO_SPEECH_TIMEOUT_MS    = 7000;  // si nunca hablás, se cancela solo
+const MAX_LISTEN_MS           = 20000; // tope duro de seguridad
+
 // ────────────────────────────────────────────
 // State
 // ────────────────────────────────────────────
@@ -343,7 +348,71 @@ const chatSend = document.getElementById('chatSend');
 
 let recognition = null;
 let isListening = false;
-let gotResult = false;  // ← FIX: track si Web Speech detectó algo antes de end
+let hasSpeech = false;          // ¿detectó algo de voz en esta sesión?
+let finalTranscript = '';       // texto final acumulado de la sesión
+let stopRequested = false;      // ¿pedimos parar (manual o por silencio)?
+let discardSession = false;     // cancelar sin procesar (ej. el user escribió)
+let silenceTimer = null;        // corta tras silencio
+let noSpeechTimer = null;       // corta si nunca habla
+let maxListenTimer = null;      // tope duro
+let currentAudio = null;        // audio TTS del backend en curso
+
+// ────────────────────────────────────────────
+// Earcons — sonidos de mic ON / OFF (Web Audio API, sin archivos)
+// ────────────────────────────────────────────
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function beep(freq, startOffset, dur, peak) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(ctx.destination);
+    const t = ctx.currentTime + startOffset;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.03);
+  } catch (e) { /* audio no disponible — ignorar */ }
+}
+// ON = dos tonos que SUBEN (abrir). OFF = dos tonos que BAJAN (cerrar).
+function earconOn()  { beep(660, 0, 0.12, 0.22); beep(990, 0.10, 0.14, 0.22); }
+function earconOff() { beep(880, 0, 0.12, 0.18); beep(520, 0.10, 0.16, 0.18); }
+
+// ────────────────────────────────────────────
+// Control de timers de escucha
+// ────────────────────────────────────────────
+function clearListenTimers() {
+  clearTimeout(silenceTimer);  silenceTimer = null;
+  clearTimeout(noSpeechTimer); noSpeechTimer = null;
+  clearTimeout(maxListenTimer); maxListenTimer = null;
+}
+function armSilenceTimer() {
+  clearTimeout(silenceTimer);
+  silenceTimer = setTimeout(() => stopListening('silence'), SILENCE_AFTER_SPEECH_MS);
+}
+// Apaga el mic procesando lo dicho (manual, por silencio o por timeout)
+function stopListening(reason) {
+  if (!isListening || stopRequested) return;
+  stopRequested = true;
+  clearListenTimers();
+  try { recognition.stop(); } catch (e) {}
+}
+// Apaga el mic DESCARTANDO lo dicho (ej. el user prefirió escribir)
+function cancelListening() {
+  if (!recognition || !isListening) return;
+  discardSession = true;
+  finalTranscript = '';
+  clearListenTimers();
+  try { recognition.abort(); } catch (e) {}
+}
 
 // ────────────────────────────────────────────
 // Speech recognition (con fix del bug "queda pensando")
@@ -352,45 +421,65 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'es-MX';
-  recognition.interimResults = true;   // ← muestra texto en vivo
-  recognition.continuous = false;
+  recognition.interimResults = true;   // texto en vivo → confirma que SÍ reconoce
+  recognition.continuous = true;       // NOSOTROS controlamos el corte por silencio
   recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isListening = true;
+    // Si nunca habla, cancelar solo
+    noSpeechTimer = setTimeout(() => stopListening('no-speech'), NO_SPEECH_TIMEOUT_MS);
+    // Tope duro de seguridad
+    maxListenTimer = setTimeout(() => stopListening('max'), MAX_LISTEN_MS);
+  };
 
   recognition.onresult = (event) => {
     let interimText = '';
-    let finalText = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
+    finalTranscript = '';
+    for (let i = 0; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalText += transcript;
+      if (event.results[i].isFinal) finalTranscript += transcript + ' ';
       else interimText += transcript;
     }
-    if (interimText) interim.textContent = '"' + interimText + '..."';
-    if (finalText) {
-      gotResult = true;
-      interim.textContent = '';
-      handleQuery(finalText.trim());
+    const shown = (finalTranscript + interimText).trim();
+    if (shown) {
+      // Confirmación visual de que está reconociendo lo que decís
+      interim.textContent = '"' + shown + '"';
+      if (!hasSpeech) {
+        hasSpeech = true;
+        clearTimeout(noSpeechTimer);
+        status.textContent = 'Te escucho...';
+      }
+      // Cada vez que llega voz, reinicia el contador de silencio
+      armSilenceTimer();
     }
   };
 
   recognition.onerror = (event) => {
     console.error('Speech error:', event.error);
-    if (event.error === 'no-speech') {
-      setIdle('No te escuché. Apretá de nuevo y hablá más fuerte.');
-    } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+    clearListenTimers();
+    if (event.error === 'not-allowed' || event.error === 'permission-denied') {
       setIdle('Necesito permiso del micrófono. Recargá la página y permití.');
     } else if (event.error === 'audio-capture') {
       setIdle('No encuentro micrófono. Revisá que esté conectado.');
-    } else {
-      setIdle('Error: ' + event.error);
     }
+    // 'no-speech' y 'aborted' los maneja onend (normal)
   };
 
   recognition.onend = () => {
-    if (isListening && !gotResult) {
-      // FIX: se quedaba en "PENSANDO" para siempre — ahora resetea
+    clearListenTimers();
+    isListening = false;
+    // Sesión cancelada (el user escribió) → no procesar ni sonar
+    if (discardSession) { discardSession = false; return; }
+
+    earconOff();                       // 🔉 sonido de mic DESACTIVADO
+    const text = finalTranscript.trim();
+    if (text) {
+      interim.textContent = '';
+      handleQuery(text);               // recién ahora procesamos lo dicho
+    } else {
       setIdle('No te escuché. Apretá y hablá, o escribí abajo.');
     }
-    isListening = false;
   };
 } else {
   status.textContent = 'Tu navegador no soporta voz. Usá el chat de abajo.';
@@ -400,22 +489,35 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
 
 btn.addEventListener('click', () => {
   if (!recognition) return;
+
+  // TOGGLE: si ya está escuchando, este click APAGA el mic (procesa lo dicho)
   if (isListening) {
-    recognition.stop();
+    stopListening('manual');
     return;
   }
-  // Cortar TTS si estaba hablando
+
+  // Cortar cualquier voz/TTS en curso
   speechSynthesis.cancel();
-  isListening = true;
-  gotResult = false;
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+
+  // Reset del estado de la sesión de escucha
+  stopRequested = false;
+  discardSession = false;
+  hasSpeech = false;
+  finalTranscript = '';
+  clearListenTimers();
+
   btn.classList.remove('thinking', 'speaking');
   btn.classList.add('listening');
   btnLabel.innerHTML = '🎙️<br>ESCUCHO';
   status.textContent = 'Hablá ahora...';
   interim.textContent = '';
+
+  earconOn();                          // 🔊 sonido de mic ACTIVADO
   try {
     recognition.start();
   } catch (e) {
+    // start() lanza si ya venía corriendo → resetear
     setIdle('Error al iniciar. Apretá de nuevo.');
   }
 });
@@ -428,9 +530,10 @@ chatForm.addEventListener('submit', (e) => {
   const text = chatInput.value.trim();
   if (!text) return;
   chatInput.value = '';
-  // Cortar voz/TTS si estaba activo
-  if (recognition && isListening) recognition.stop();
+  // Descartar el mic sin procesar la voz (el user prefirió escribir)
+  cancelListening();
   speechSynthesis.cancel();
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
   handleQuery(text);
 });
 
@@ -443,7 +546,10 @@ function setIdle(msg) {
   status.textContent = msg || 'Aprietá el botón y hablale';
   interim.textContent = '';
   isListening = false;
-  gotResult = false;
+  hasSpeech = false;
+  finalTranscript = '';
+  stopRequested = false;
+  clearListenTimers();
 }
 
 // Normaliza texto: lowercase + sin tildes + sin signos
@@ -552,8 +658,9 @@ async function speakViaBackend(text) {
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    audio.onended = () => { setIdle(); URL.revokeObjectURL(url); };
-    audio.onerror = () => { setIdle('Error reproduciendo audio del backend'); URL.revokeObjectURL(url); };
+    currentAudio = audio;
+    audio.onended = () => { currentAudio = null; setIdle(); URL.revokeObjectURL(url); };
+    audio.onerror = () => { currentAudio = null; setIdle('Error reproduciendo audio del backend'); URL.revokeObjectURL(url); };
     await audio.play();
   } catch (e) {
     console.error('Backend TTS error, fallback a TTS browser:', e);
@@ -620,7 +727,8 @@ function replayMessage(text, btnEl) {
 
 function quickAsk(text) {
   speechSynthesis.cancel();
-  if (recognition && isListening) recognition.stop();
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  cancelListening();
   handleQuery(text);
 }
 
