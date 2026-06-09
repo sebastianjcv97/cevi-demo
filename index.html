@@ -248,6 +248,13 @@
     </button>
     <div class="status" id="status">Aprietá el botón y hablale</div>
     <div class="interim" id="interim"></div>
+    <div id="micMeterWrap" style="display:none; margin-top:12px; max-width:240px; margin-left:auto; margin-right:auto;">
+      <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--wine); opacity:0.6; margin-bottom:5px;">Nivel de micrófono</div>
+      <div style="height:8px; background:var(--cream-dark); border-radius:4px; overflow:hidden;">
+        <div id="micMeterBar" style="height:100%; width:0%; background:var(--wine); transition:width 0.05s linear;"></div>
+      </div>
+      <div id="micMeterHint" style="font-size:10px; color:var(--wine); opacity:0.5; margin-top:4px;">Hablá: si la barra no se mueve, Chrome no recibe tu micrófono.</div>
+    </div>
   </div>
 
   <div class="chat-input-area">
@@ -387,6 +394,51 @@ function earconOn()  { beep(660, 0, 0.12, 0.22); beep(990, 0.10, 0.14, 0.22); }
 function earconOff() { beep(880, 0, 0.12, 0.18); beep(520, 0.10, 0.16, 0.18); }
 
 // ────────────────────────────────────────────
+// Medidor de micrófono en vivo (diagnóstico) — barra que se mueve con tu voz
+// ────────────────────────────────────────────
+let micStream = null, micAnalyser = null, micRAF = null;
+async function startMicMeter() {
+  const wrap = document.getElementById('micMeterWrap');
+  const bar = document.getElementById('micMeterBar');
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const ctx = getAudioCtx();
+    const src = ctx.createMediaStreamSource(micStream);
+    micAnalyser = ctx.createAnalyser();
+    micAnalyser.fftSize = 512;
+    src.connect(micAnalyser);
+    const data = new Uint8Array(micAnalyser.frequencyBinCount);
+    if (wrap) wrap.style.display = 'block';
+    const tick = () => {
+      if (!micAnalyser) return;
+      micAnalyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
+      const rms = Math.sqrt(sum / data.length);
+      const pct = Math.min(100, Math.round(rms * 280));
+      if (bar) {
+        bar.style.width = pct + '%';
+        bar.style.background = pct > 8 ? '#2a8b54' : 'var(--wine)';
+      }
+      micRAF = requestAnimationFrame(tick);
+    };
+    tick();
+  } catch (e) {
+    console.warn('No se pudo abrir el medidor de micrófono:', e);
+    if (wrap) wrap.style.display = 'none';
+  }
+}
+function stopMicMeter() {
+  if (micRAF) { cancelAnimationFrame(micRAF); micRAF = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  micAnalyser = null;
+  const wrap = document.getElementById('micMeterWrap');
+  const bar = document.getElementById('micMeterBar');
+  if (wrap) wrap.style.display = 'none';
+  if (bar) bar.style.width = '0%';
+}
+
+// ────────────────────────────────────────────
 // Control de timers de escucha
 // ────────────────────────────────────────────
 function clearListenTimers() {
@@ -458,18 +510,25 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   recognition.onerror = (event) => {
     console.error('Speech error:', event.error);
     clearListenTimers();
+    stopMicMeter();
     if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-      setIdle('Necesito permiso del micrófono. Recargá la página y permití.');
+      discardSession = true;
+      setIdle('⚠️ Chrome no tiene permiso de mic en macOS. Andá a Ajustes del Sistema → Privacidad y seguridad → Micrófono → activá Google Chrome, y reabrí Chrome.');
     } else if (event.error === 'audio-capture') {
-      setIdle('No encuentro micrófono. Revisá que esté conectado.');
+      discardSession = true;
+      setIdle('⚠️ No encuentro un micrófono activo. Revisá el dispositivo de entrada de esa Mac.');
+    } else if (event.error === 'network') {
+      discardSession = true;
+      setIdle('⚠️ Error de red con el reconocimiento de Google. Reintentá en un momento.');
     }
     // 'no-speech' y 'aborted' los maneja onend (normal)
   };
 
   recognition.onend = () => {
     clearListenTimers();
+    stopMicMeter();
     isListening = false;
-    // Sesión cancelada (el user escribió) → no procesar ni sonar
+    // Sesión cancelada (el user escribió o hubo error) → no procesar ni sonar
     if (discardSession) { discardSession = false; return; }
 
     earconOff();                       // 🔉 sonido de mic DESACTIVADO
@@ -514,6 +573,7 @@ btn.addEventListener('click', () => {
   interim.textContent = '';
 
   earconOn();                          // 🔊 sonido de mic ACTIVADO
+  startMicMeter();                     // 📊 medidor de nivel (diagnóstico)
   try {
     recognition.start();
   } catch (e) {
@@ -550,6 +610,7 @@ function setIdle(msg) {
   finalTranscript = '';
   stopRequested = false;
   clearListenTimers();
+  stopMicMeter();
 }
 
 // Normaliza texto: lowercase + sin tildes + sin signos
