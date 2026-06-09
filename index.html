@@ -125,6 +125,7 @@
   .msg.cevi strong { color: var(--red-bright); }
   .replay { margin-top: 9px; background: rgba(249,2,11,0.14); border: 1px solid rgba(249,2,11,0.45); color: var(--red-bright); padding: 4px 11px; border-radius: 9px; font-size: 11px; cursor: pointer; font-family: inherit; transition: background .2s; }
   .replay:hover { background: rgba(249,2,11,0.26); }
+  .ticket-chip { align-self: flex-start; background: rgba(249,2,11,0.12); border: 1px solid rgba(249,2,11,0.4); color: var(--red-bright); font-size: 12px; padding: 8px 14px; border-radius: 999px; animation: msgIn .35s ease both; }
 
   /* ───────── ESCRIBIR ───────── */
   .composer { width: 100%; margin-top: 20px; display: flex; gap: 9px; animation: fadeUp .7s .15s ease both; }
@@ -584,7 +585,7 @@ async function handleQuery(transcript) {
   btnLabel.textContent = 'Pensando…';
   status.textContent = 'CeVi está pensando…';
 
-  let responseText = null, backendTTS = false;
+  let responseText = null, backendTTS = false, ticket = null;
   if (BACKEND_URL) {
     try {
       const r = await fetch(BACKEND_URL + '/chat', {
@@ -592,17 +593,22 @@ async function handleQuery(transcript) {
         body: JSON.stringify({ message: transcript, history: priorHistory, machine_id: 'DEMO-9060-001',
           customer_name: (customer && customer.name) || 'Cliente',
           customer_city: (customer && customer.city) || '',
-          customer_country: (customer && customer.country) || 'Perú' })
+          customer_country: (customer && customer.country) || 'Perú',
+          customer_id: (customer && customer.id) || null })
       });
       const data = await r.json();
-      if (data.response) { responseText = data.response; backendTTS = true; }
-      else console.warn('Backend error:', data);
+      if (data.response) {
+        responseText = data.response; backendTTS = true;
+        if (data.partner_id && customer) { customer.id = data.partner_id; saveCustomer(customer); }
+        if (data.ticket) ticket = data.ticket;
+      } else console.warn('Backend error:', data);
     } catch (e) { console.warn('Backend offline, fallback KB:', e); }
   }
   if (responseText === null) responseText = matchKB(transcript);
 
   history.push({ role: 'assistant', content: responseText });
   addMessage('cevi', responseText);
+  if (ticket) addTicketChip(ticket);
   if (backendTTS) await playViaBackend(responseText);
   else playBrowserTTS(responseText);
 }
@@ -672,6 +678,13 @@ function addMessage(role, text) {
           + escapeHtml(text).replace(/"/g, '&quot;') + '">🔊 Reproducir</button></div>';
   }
   div.innerHTML = html;
+  conversation.appendChild(div);
+  conversation.scrollTop = conversation.scrollHeight;
+}
+function addTicketChip(t) {
+  const div = document.createElement('div');
+  div.className = 'ticket-chip';
+  div.innerHTML = '🎫 Ticket de soporte creado en Odoo · <b>' + escapeHtml(String(t.ref || t.id)) + '</b>';
   conversation.appendChild(div);
   conversation.scrollTop = conversation.scrollHeight;
 }
