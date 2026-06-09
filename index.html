@@ -154,6 +154,39 @@
   .chip:hover { background: var(--red); border-color: var(--red); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(249,2,11,0.35); }
 
   footer { width: 100%; max-width: 640px; padding: 0 24px 26px; font-size: 11px; color: rgba(255,255,255,0.34); text-align: center; line-height: 1.6; }
+  .link-btn { background: none; border: none; color: var(--red-bright); font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 0 0 8px; }
+
+  /* ───────── IDENTIFICACIÓN (1 sola vez) ───────── */
+  .identify {
+    position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; padding: 24px;
+    background: rgba(8,8,8,0.8); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  }
+  .identify.show { display: flex; animation: fadeUp .3s ease both; }
+  .identify-card {
+    width: 100%; max-width: 380px; background: #1c1c1c; border: 1px solid var(--line);
+    border-radius: 20px; padding: 32px 26px 26px; text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(249,2,11,0.18);
+  }
+  .mini-orb {
+    width: 66px; height: 66px; border-radius: 50%; margin: 0 auto 16px;
+    background: radial-gradient(circle at 38% 30%, #fff 0%, #FF6A60 16%, var(--red) 50%, var(--red-deep) 100%);
+    box-shadow: 0 0 32px rgba(249,2,11,0.55); animation: breathe 5s ease-in-out infinite;
+  }
+  .identify-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .identify-card h2 b { color: var(--red); }
+  .identify-card p { color: var(--muted); font-size: 14px; margin-bottom: 18px; line-height: 1.5; }
+  .identify-card input, .identify-card select {
+    width: 100%; padding: 13px 16px; margin-bottom: 10px; background: #262626;
+    border: 1px solid var(--line); border-radius: 12px; color: #fff; font-size: 15px; font-family: inherit; outline: none;
+  }
+  .identify-card input:focus, .identify-card select:focus { border-color: var(--red); }
+  .identify-card button {
+    width: 100%; padding: 14px; margin-top: 6px; border: none; border-radius: 12px;
+    background: var(--red); color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 18px rgba(249,2,11,0.35);
+  }
+  .identify-card button:hover { filter: brightness(1.1); }
+  .identify-card small { display: block; margin-top: 12px; color: rgba(255,255,255,0.3); font-size: 11px; }
 
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
   @keyframes fadeUp   { from { opacity: 0; transform: translateY(14px); }  to { opacity: 1; transform: none; } }
@@ -185,9 +218,9 @@
   <div class="interim" id="interim"></div>
 
   <div class="conversation" id="conversation">
-    <div class="msg cevi">
+    <div class="msg cevi" id="welcome">
       <div class="msg-label">CeVi</div>
-      Hola Carlos, soy CeVi, tu asistente de la máquina. Toca el orbe y pregúntame lo que quieras, o escríbeme aquí abajo.
+      Hola, soy CeVi, tu asistente de la máquina. Toca el orbe y pregúntame lo que quieras, o escríbeme aquí abajo.
     </div>
   </div>
 
@@ -201,9 +234,27 @@
 </main>
 
 <footer>
+  <button class="link-btn" id="changeUser">¿No eres tú? Cambiar de usuario</button><br>
   CeVi habla con voz Dalia (mexicana) y piensa con Claude. Mejor experiencia en Chrome.<br>
   Demo del asistente que vendrá integrado en cada máquina láser C4V.
 </footer>
+
+<div class="identify" id="identify">
+  <div class="identify-card">
+    <div class="mini-orb"></div>
+    <h2>Hola, soy <b>CeVi</b></h2>
+    <p>Tu asistente de la máquina láser C4V. ¿Cómo te llamas? Te lo pregunto una sola vez.</p>
+    <input id="idName" placeholder="Tu nombre" autocomplete="name">
+    <select id="idCountry">
+      <option value="Perú">Perú</option>
+      <option value="Ecuador">Ecuador</option>
+      <option value="Bolivia">Bolivia</option>
+      <option value="Colombia">Colombia</option>
+    </select>
+    <button id="idGo">Empezar</button>
+    <small>Tu nombre se guarda solo en este navegador.</small>
+  </div>
+</div>
 
 <script>
 // ════════════════════════════════════════════
@@ -539,7 +590,9 @@ async function handleQuery(transcript) {
       const r = await fetch(BACKEND_URL + '/chat', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ message: transcript, history: priorHistory, machine_id: 'DEMO-9060-001',
-          customer_name: 'Carlos', customer_city: 'Bogotá', customer_country: 'Colombia' })
+          customer_name: (customer && customer.name) || 'Cliente',
+          customer_city: (customer && customer.city) || '',
+          customer_country: (customer && customer.country) || 'Perú' })
       });
       const data = await r.json();
       if (data.response) { responseText = data.response; backendTTS = true; }
@@ -644,6 +697,52 @@ SUGGESTIONS.forEach((q, i) => {
   suggestions.appendChild(c);
 });
 speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+// ════════════════════════════════════════════
+// Identidad del cliente — se guarda en el navegador (1 sola vez)
+// ════════════════════════════════════════════
+let welcomeEl = document.getElementById('welcome');
+const identifyEl = document.getElementById('identify');
+const idName = document.getElementById('idName');
+const idCountry = document.getElementById('idCountry');
+
+function loadCustomer() { try { return JSON.parse(localStorage.getItem('cevi_customer') || 'null'); } catch (e) { return null; } }
+function saveCustomer(c) { try { localStorage.setItem('cevi_customer', JSON.stringify(c)); } catch (e) {} }
+let customer = loadCustomer();
+
+function applyWelcome() {
+  const name = customer && customer.name ? customer.name : '';
+  welcomeEl.innerHTML = '<div class="msg-label">CeVi</div>' +
+    (name ? 'Hola ' + escapeHtml(name) + ', ' : 'Hola, ') +
+    'soy CeVi, tu asistente de la máquina. Toca el orbe y pregúntame lo que quieras, o escríbeme aquí abajo.';
+}
+function showIdentify() { identifyEl.classList.add('show'); setTimeout(() => idName.focus(), 60); }
+function hideIdentify() { identifyEl.classList.remove('show'); }
+
+document.getElementById('idGo').addEventListener('click', () => {
+  const name = (idName.value || '').trim() || 'Cliente';
+  customer = { name: name, city: '', country: idCountry.value };
+  saveCustomer(customer);
+  hideIdentify();
+  applyWelcome();
+});
+idName.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('idGo').click(); });
+
+document.getElementById('changeUser').addEventListener('click', () => {
+  customer = null;
+  try { localStorage.removeItem('cevi_customer'); } catch (e) {}
+  history.length = 0;
+  conversation.innerHTML = '';
+  welcomeEl = document.createElement('div');
+  welcomeEl.className = 'msg cevi'; welcomeEl.id = 'welcome';
+  conversation.appendChild(welcomeEl);
+  idName.value = '';
+  applyWelcome();
+  showIdentify();
+});
+
+applyWelcome();
+if (!customer) showIdentify();
 </script>
 </body>
 </html>
