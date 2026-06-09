@@ -2,302 +2,280 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CeVi Voice — Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CeVi — Asistente de Voz C4V Láser</title>
 <style>
+  @property --breath { syntax: "<number>"; inherits: false; initial-value: 1; }
+  @property --level  { syntax: "<number>"; inherits: false; initial-value: 0; }
+
   :root {
     --wine: #651D32;
-    --wine-dark: #4a1424;
+    --wine-light: #8b2845;
+    --gold: #E0B978;
+    --gold-bright: #F4DDB0;
     --cream: #FDF4E3;
-    --cream-dark: #e8dcc7;
-    --text: #2a1219;
+    --cream-dim: rgba(253, 244, 227, 0.62);
+    --cream-faint: rgba(253, 244, 227, 0.12);
+    --ok: #59c08a;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-    background: var(--cream);
-    color: var(--text);
-    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Helvetica Neue", sans-serif;
+    color: var(--cream);
+    background: #140609;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px;
+    overflow-x: hidden;
+    position: relative;
   }
-  .header { text-align: center; margin-bottom: 30px; }
-  .logo {
-    font-size: 42px;
-    font-weight: 900;
-    letter-spacing: -1px;
-    color: var(--wine);
+  /* Fondo animado: vino profundo con halos que derivan suave */
+  .bg {
+    position: fixed; inset: 0; z-index: -2;
+    background:
+      radial-gradient(60% 50% at 50% 18%, #5a1628 0%, rgba(90,22,40,0) 60%),
+      radial-gradient(70% 60% at 80% 90%, #3a0f1e 0%, rgba(58,15,30,0) 55%),
+      linear-gradient(160deg, #1d0a11 0%, #2a0d18 45%, #100407 100%);
   }
-  .tagline {
-    font-size: 14px;
-    color: var(--wine);
-    opacity: 0.7;
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+  .bg::after {
+    content: ""; position: absolute; inset: -20%;
+    background:
+      radial-gradient(35% 35% at 30% 30%, rgba(224,185,120,0.10), transparent 70%),
+      radial-gradient(40% 40% at 75% 65%, rgba(139,40,69,0.22), transparent 70%);
+    animation: drift 26s ease-in-out infinite alternate;
   }
-  .card {
-    background: white;
-    border-radius: 24px;
-    padding: 40px;
-    max-width: 540px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(101, 29, 50, 0.12);
-    margin-bottom: 20px;
+  @keyframes drift {
+    0%   { transform: translate(0,0) scale(1); }
+    100% { transform: translate(4%, -3%) scale(1.12); }
   }
-  .machine-info {
-    background: var(--cream-dark);
-    border-radius: 16px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
-    font-size: 13px;
-    color: var(--wine-dark);
+
+  header {
+    width: 100%; max-width: 640px;
+    padding: 22px 24px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    animation: fadeDown .7s ease both;
   }
-  .machine-info strong { color: var(--wine); }
-  .button-area { text-align: center; margin: 30px 0 10px; }
-  .talk-button {
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: var(--wine);
-    color: var(--cream);
-    border: none;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 12px 30px rgba(101, 29, 50, 0.35);
-    user-select: none;
+  .brand { font-size: 15px; font-weight: 800; letter-spacing: .5px; }
+  .brand b { color: var(--gold); }
+  .brand span { color: var(--cream-dim); font-weight: 600; letter-spacing: 2px; font-size: 10px; text-transform: uppercase; }
+  .badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--gold); border: 1px solid rgba(224,185,120,0.35);
+    padding: 5px 11px; border-radius: 999px; background: rgba(224,185,120,0.06);
   }
-  .talk-button:hover { transform: scale(1.05); }
-  .talk-button:active,
-  .talk-button.listening {
-    background: #8b2845;
-    transform: scale(0.95);
-    animation: pulse 1.5s ease-in-out infinite;
+
+  main {
+    flex: 1; width: 100%; max-width: 640px;
+    padding: 8px 24px 40px;
+    display: flex; flex-direction: column; align-items: center;
   }
-  .talk-button.thinking {
-    background: #b88a2a;
-    animation: spin 2s linear infinite;
+
+  /* ───────── ORBE ───────── */
+  .orb-stage {
+    margin: 26px 0 6px;
+    display: flex; flex-direction: column; align-items: center;
+    animation: pop .8s cubic-bezier(.2,.9,.3,1.2) both;
   }
-  .talk-button.speaking {
-    background: #2a8b54;
-    animation: pulse 1s ease-in-out infinite;
+  .talk-btn {
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    padding: 8px;
   }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 12px 30px rgba(101, 29, 50, 0.35); }
-    50% { box-shadow: 0 0 60px rgba(101, 29, 50, 0.6); }
+  .orb {
+    --level: 0;
+    position: relative;
+    width: 188px; height: 188px; border-radius: 50%;
+    animation: breathe 4.6s ease-in-out infinite;
+    transform: scale(calc(var(--breath) * (1 + var(--level) * 0.22)));
+    background:
+      radial-gradient(circle at 38% 32%, var(--gold-bright) 0%, var(--gold) 26%, var(--wine-light) 64%, var(--wine) 100%);
+    box-shadow:
+      0 0 calc(46px + var(--level) * 130px) rgba(224,185,120, calc(0.35 + var(--level) * 0.5)),
+      0 18px 60px rgba(0,0,0,0.55),
+      inset -16px -20px 50px rgba(74,20,36,0.85),
+      inset 14px 16px 40px rgba(253,244,227,0.4);
+    transition: box-shadow .12s linear;
   }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  /* anillo de luz que orbita */
+  .orb::before {
+    content: ""; position: absolute; inset: -14px; border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(224,185,120,0.55) 18%, transparent 38%, transparent 100%);
+    filter: blur(7px); opacity: 0;
+    transition: opacity .4s ease;
+    animation: spin 3.4s linear infinite;
   }
-  .status {
-    margin-top: 16px;
-    font-size: 14px;
-    color: var(--wine);
-    min-height: 22px;
-    font-weight: 500;
-    text-align: center;
+  /* brillo especular */
+  .orb::after {
+    content: ""; position: absolute; left: 22%; top: 16%;
+    width: 34%; height: 26%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.85), transparent 70%);
+    filter: blur(3px);
   }
+  @keyframes breathe { 0%,100% { --breath: 1; } 50% { --breath: 1.05; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .talk-btn:hover .orb { box-shadow: 0 0 70px rgba(224,185,120,0.5), 0 18px 60px rgba(0,0,0,0.55), inset -16px -20px 50px rgba(74,20,36,0.85), inset 14px 16px 40px rgba(253,244,227,0.45); }
+  .talk-btn:active .orb { transform: scale(0.97); }
+
+  /* Estados */
+  .talk-btn.listening .orb { animation: breathe 2.2s ease-in-out infinite; }
+  .talk-btn.listening .orb::before { opacity: 1; animation: spin 2.2s linear infinite; }
+  .talk-btn.thinking .orb {
+    background: radial-gradient(circle at 38% 32%, #f4ddb0 0%, var(--gold) 30%, var(--wine) 100%);
+  }
+  .talk-btn.thinking .orb::before { opacity: 1; animation: spin 1s linear infinite; }
+  .talk-btn.speaking .orb {
+    background: radial-gradient(circle at 40% 34%, #d9f4e4 0%, #8fd9b4 18%, var(--gold) 52%, var(--wine) 100%);
+  }
+  .talk-btn.speaking .orb::before {
+    opacity: 1;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(89,192,138,0.6) 20%, transparent 42%);
+    animation: spin 2.6s linear infinite;
+  }
+
+  .orb-label {
+    font-size: 13px; font-weight: 600; letter-spacing: .3px;
+    color: var(--cream); opacity: .95;
+  }
+
+  .status { margin-top: 14px; font-size: 14px; color: var(--cream-dim); min-height: 20px; text-align: center; transition: color .3s; }
   .interim {
-    font-size: 13px;
-    color: var(--wine);
-    opacity: 0.6;
-    font-style: italic;
-    min-height: 18px;
-    margin-top: 8px;
-    text-align: center;
+    margin-top: 10px; font-size: 16px; font-style: italic; color: var(--gold-bright);
+    min-height: 24px; text-align: center; max-width: 460px; line-height: 1.4;
   }
-  .chat-input-area {
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--cream-dark);
-  }
-  .chat-input-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--wine);
-    opacity: 0.6;
-    margin-bottom: 10px;
-    text-align: center;
-  }
-  .chat-form {
-    display: flex;
-    gap: 8px;
-  }
-  .chat-input {
-    flex: 1;
-    padding: 14px 18px;
-    border: 2px solid var(--cream-dark);
-    border-radius: 14px;
-    font-size: 15px;
-    font-family: inherit;
-    color: var(--text);
-    background: var(--cream);
-    outline: none;
-    transition: border-color 0.2s;
-    min-width: 0;
-  }
-  .chat-input:focus { border-color: var(--wine); }
-  .chat-send {
-    padding: 14px 22px;
-    background: var(--wine);
-    color: var(--cream);
-    border: none;
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-family: inherit;
-    white-space: nowrap;
-  }
-  .chat-send:hover { background: var(--wine-dark); }
-  .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ───────── CONVERSACIÓN ───────── */
   .conversation {
-    margin-top: 24px;
-    max-height: 280px;
-    overflow-y: auto;
-    border-top: 1px solid var(--cream-dark);
-    padding-top: 20px;
+    width: 100%; margin-top: 22px;
+    max-height: 300px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px;
+    padding-right: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(224,185,120,0.3) transparent;
   }
+  .conversation::-webkit-scrollbar { width: 6px; }
+  .conversation::-webkit-scrollbar-thumb { background: rgba(224,185,120,0.3); border-radius: 3px; }
   .msg {
-    padding: 12px 16px;
-    border-radius: 14px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    line-height: 1.5;
+    padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.55;
+    max-width: 86%; animation: msgIn .35s ease both;
   }
+  .msg .msg-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; opacity: .55; margin-bottom: 4px; }
   .msg.user {
-    background: var(--cream-dark);
-    color: var(--wine-dark);
-    border-bottom-right-radius: 4px;
-    margin-left: 30px;
-    text-align: right;
+    align-self: flex-end; text-align: right;
+    background: var(--cream-faint); color: var(--cream);
+    border-bottom-right-radius: 5px;
   }
   .msg.cevi {
-    background: var(--wine);
-    color: var(--cream);
-    border-bottom-left-radius: 4px;
-    margin-right: 30px;
+    align-self: flex-start;
+    background: linear-gradient(135deg, rgba(139,40,69,0.55), rgba(101,29,50,0.42));
+    border: 1px solid rgba(224,185,120,0.18);
+    border-bottom-left-radius: 5px;
   }
-  .msg-label {
-    font-size: 10px;
-    opacity: 0.7;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
+  .msg.cevi strong { color: var(--gold-bright); }
+  .replay {
+    margin-top: 9px; background: rgba(224,185,120,0.12); border: 1px solid rgba(224,185,120,0.28);
+    color: var(--gold-bright); padding: 4px 11px; border-radius: 9px; font-size: 11px;
+    cursor: pointer; font-family: inherit; transition: background .2s;
   }
-  .footer {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 11px;
-    color: var(--wine);
-    opacity: 0.5;
-    max-width: 540px;
+  .replay:hover { background: rgba(224,185,120,0.22); }
+
+  /* ───────── COMPOSER (escribir) ───────── */
+  .composer { width: 100%; margin-top: 20px; display: flex; gap: 9px; animation: fadeUp .7s .15s ease both; }
+  .composer input {
+    flex: 1; min-width: 0; padding: 14px 18px;
+    background: rgba(253,244,227,0.07); border: 1px solid rgba(253,244,227,0.16);
+    border-radius: 14px; color: var(--cream); font-size: 15px; font-family: inherit;
+    outline: none; transition: border-color .2s, background .2s;
   }
-  .examples {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--cream-dark);
+  .composer input::placeholder { color: rgba(253,244,227,0.4); }
+  .composer input:focus { border-color: var(--gold); background: rgba(253,244,227,0.1); }
+  .composer button {
+    padding: 0 20px; border: none; border-radius: 14px; cursor: pointer;
+    background: linear-gradient(135deg, var(--gold), #ca9a55); color: #3a1018;
+    font-weight: 700; font-size: 14px; font-family: inherit; transition: transform .15s, filter .2s;
   }
-  .examples-title {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--wine);
-    opacity: 0.6;
-    margin-bottom: 8px;
+  .composer button:hover { filter: brightness(1.08); }
+  .composer button:active { transform: scale(0.95); }
+
+  /* ───────── SUGERENCIAS ───────── */
+  .suggest-title {
+    width: 100%; margin: 26px 0 11px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1.8px; color: var(--cream-dim); text-align: center;
   }
-  .example {
-    display: inline-block;
-    background: var(--cream-dark);
-    color: var(--wine-dark);
-    padding: 6px 12px;
-    margin: 3px;
-    border-radius: 12px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
+  .suggestions { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip {
+    background: rgba(253,244,227,0.06); border: 1px solid rgba(253,244,227,0.16);
+    color: var(--cream); padding: 9px 15px; border-radius: 999px; font-size: 13px;
+    cursor: pointer; transition: all .2s; animation: chipIn .5s ease both;
   }
-  .example:hover { background: var(--wine); color: var(--cream); }
+  .chip:hover { background: var(--gold); color: #3a1018; border-color: var(--gold); transform: translateY(-2px); }
+
+  footer {
+    width: 100%; max-width: 640px; padding: 0 24px 26px;
+    font-size: 11px; color: rgba(253,244,227,0.35); text-align: center; line-height: 1.6;
+  }
+
+  /* ───────── ANIMACIONES DE ENTRADA ───────── */
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeUp   { from { opacity: 0; transform: translateY(14px); }  to { opacity: 1; transform: none; } }
+  @keyframes pop      { from { opacity: 0; transform: scale(.7); }          to { opacity: 1; transform: scale(1); } }
+  @keyframes msgIn    { from { opacity: 0; transform: translateY(8px); }    to { opacity: 1; transform: none; } }
+  @keyframes chipIn   { from { opacity: 0; transform: scale(.85); }         to { opacity: 1; transform: scale(1); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .orb, .orb::before, .bg::after { animation: none !important; }
+  }
+  @media (max-width: 480px) {
+    .orb { width: 156px; height: 156px; }
+    main { padding-bottom: 30px; }
+  }
 </style>
 </head>
 <body>
+<div class="bg"></div>
 
-<div class="header">
-  <div class="logo">CeVi</div>
-  <div class="tagline">C4V Laser · Asistente de Voz</div>
-</div>
+<header>
+  <div class="brand"><b>CeVi</b> <span>· C4V Láser</span></div>
+  <div class="badge">Asistente de voz</div>
+</header>
 
-<div class="card">
-  <div class="machine-info">
-    <strong>Máquina:</strong> C4V 6090 PRO IA TEC ·
-    <strong>Cliente demo:</strong> Carlos · <strong>LATAM</strong>
-    <br>
-    <strong>SN:</strong> DEMO-9060-001 · <strong>Garantía:</strong> vigente
-  </div>
-
-  <div class="button-area">
-    <button class="talk-button" id="talkBtn">
-      <span id="btnLabel">🎤<br>HABLAR</span>
+<main>
+  <div class="orb-stage">
+    <button class="talk-btn" id="talkBtn" aria-label="Hablar con CeVi">
+      <span class="orb" id="orb"></span>
+      <span class="orb-label" id="btnLabel">Toca para hablar</span>
     </button>
-    <div class="status" id="status">Aprietá el botón y hablale</div>
-    <div class="interim" id="interim"></div>
-    <div id="micMeterWrap" style="display:none; margin-top:12px; max-width:240px; margin-left:auto; margin-right:auto;">
-      <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--wine); opacity:0.6; margin-bottom:5px;">Nivel de micrófono</div>
-      <div style="height:8px; background:var(--cream-dark); border-radius:4px; overflow:hidden;">
-        <div id="micMeterBar" style="height:100%; width:0%; background:var(--wine); transition:width 0.05s linear;"></div>
-      </div>
-      <div id="micMeterHint" style="font-size:10px; color:var(--wine); opacity:0.5; margin-top:4px;">Hablá: si la barra no se mueve, Chrome no recibe tu micrófono.</div>
-    </div>
   </div>
 
-  <div class="chat-input-area">
-    <div class="chat-input-label">— o escribí tu pregunta —</div>
-    <form class="chat-form" id="chatForm">
-      <input
-        type="text"
-        class="chat-input"
-        id="chatInput"
-        placeholder="Ejemplo: ¿Cómo limpio la lente?"
-        autocomplete="off"
-      >
-      <button type="submit" class="chat-send" id="chatSend">Enviar</button>
-    </form>
-  </div>
-
-  <div class="examples">
-    <div class="examples-title">Ejemplos rápidos (tocá para probar)</div>
-    <span class="example" onclick="quickAsk(this.innerText)">¿Cómo limpio la lente?</span>
-    <span class="example" onclick="quickAsk(this.innerText)">¿Qué potencia para acrílico de 5mm?</span>
-    <span class="example" onclick="quickAsk(this.innerText)">¿Puedo cortar PVC?</span>
-    <span class="example" onclick="quickAsk(this.innerText)">¿Cuál es el número de soporte?</span>
-    <span class="example" onclick="quickAsk(this.innerText)">¿Mi garantía sigue vigente?</span>
-    <span class="example" onclick="quickAsk(this.innerText)">¿Qué materiales puedo cortar?</span>
-  </div>
+  <div class="status" id="status">Toca el orbe y conversá con CeVi — o escribile abajo</div>
+  <div class="interim" id="interim"></div>
 
   <div class="conversation" id="conversation">
     <div class="msg cevi">
       <div class="msg-label">CeVi</div>
-      Hola Carlos, soy CeVi, tu asistente. Probá apretar el botón y preguntarme algo, o escribí en el cuadro de abajo.
+      Hola Carlos, soy CeVi, tu asistente de la máquina. Toca el orbe y pregúntame lo que quieras, o escríbeme aquí abajo.
     </div>
   </div>
-</div>
 
-<div class="footer">
-  Tocá el botón: un sonido confirma que el mic se activó. Hablá y, al callarte, se apaga solo (otro sonido). También podés tocar el botón de nuevo para cortar.<br>
-  Motor: Claude Haiku 4.5 + voz Dalia (Edge TTS) vía backend. En producción: SN real desde Odoo + Whisper Large v3.
-</div>
+  <form class="composer" id="chatForm">
+    <input type="text" id="chatInput" placeholder="Escribe tu pregunta…" autocomplete="off">
+    <button type="submit" id="chatSend">Enviar</button>
+  </form>
+
+  <div class="suggest-title">Preguntas frecuentes</div>
+  <div class="suggestions" id="suggestions"></div>
+</main>
+
+<footer>
+  CeVi habla con voz Dalia (mexicana) y piensa con Claude. Mejor experiencia en Chrome.<br>
+  Demo del asistente que vendrá integrado en cada máquina láser C4V.
+</footer>
 
 <script>
-// ────────────────────────────────────────────
-// KB v1 — 24 entradas (mismo contenido que c4v.machine_voice_kb)
-// ────────────────────────────────────────────
+// ════════════════════════════════════════════
+// KB v1 — fallback offline (mismo contenido que c4v.machine_voice_kb)
+// ════════════════════════════════════════════
 const KB = [
   { keywords: ['encender','prender','iniciar','arrancar','empezar','encendida','prendida','prendo','enciendo','chiller','estabilizador','orden','primero','antes'], answer: "Verifica tres cosas en este orden: el estabilizador de voltaje encendido, el chiller con agua destilada en marcha, y luego sí enciende la máquina. Nunca prendas el láser sin el chiller activo, eso quema el tubo láser." },
   { keywords: ['pvc','toxico','cloro','peligro','prohibido','plastico','no debo cortar','no cortar','no se puede'], answer: "No, nunca cortes PVC. Genera gas cloro tóxico que daña la máquina y es peligroso para tu salud. Materiales seguros: madera, MDF, acrílico, cartón, cuero, tela, papel y caucho." },
@@ -329,45 +307,51 @@ const KB = [
   { keywords: ['como estas','cómo estás','que tal','qué tal','todo bien','funcionando'], answer: "Todo bien Carlos, listo para ayudarte. Tu máquina está funcionando correctamente. ¿Qué necesitas?" },
 ];
 
-// ────────────────────────────────────────────
-// CONFIG
-// ────────────────────────────────────────────
-// URL del backend Railway. Cuando está, usa Claude Haiku + Edge TTS Dalia mexicana.
-// Si el backend cae, fallback automático a KB local hardcoded.
-const BACKEND_URL = 'https://cevi-backend-general.up.railway.app';
+// Preguntas sugeridas (chips)
+const SUGGESTIONS = [
+  '¿Cómo limpio la lente?',
+  '¿Qué potencia para acrílico de 5mm?',
+  '¿Puedo cortar PVC?',
+  '¿Cada cuánto cambio el agua del chiller?',
+  '¿Mi garantía sigue vigente?',
+  '¿Qué materiales puedo cortar?',
+];
 
-// Timing de escucha — lo controlamos NOSOTROS, no el navegador.
+// ════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════
+const BACKEND_URL = 'https://cevi-backend-general.up.railway.app';
 const SILENCE_AFTER_SPEECH_MS = 1800;  // tras dejar de hablar, corta el mic solo
 const NO_SPEECH_TIMEOUT_MS    = 7000;  // si nunca hablás, se cancela solo
 const MAX_LISTEN_MS           = 20000; // tope duro de seguridad
 
-// ────────────────────────────────────────────
-// State
-// ────────────────────────────────────────────
+// ════════════════════════════════════════════
+// DOM
+// ════════════════════════════════════════════
 const btn = document.getElementById('talkBtn');
+const orb = document.getElementById('orb');
 const status = document.getElementById('status');
 const interim = document.getElementById('interim');
 const conversation = document.getElementById('conversation');
 const btnLabel = document.getElementById('btnLabel');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
-const chatSend = document.getElementById('chatSend');
+const suggestions = document.getElementById('suggestions');
 
+// ════════════════════════════════════════════
+// Estado
+// ════════════════════════════════════════════
 let recognition = null;
 let isListening = false;
-let hasSpeech = false;          // ¿detectó algo de voz en esta sesión?
-let finalTranscript = '';       // texto final acumulado de la sesión
-let stopRequested = false;      // ¿pedimos parar (manual o por silencio)?
-let discardSession = false;     // cancelar sin procesar (ej. el user escribió)
-let silenceTimer = null;        // corta tras silencio
-let noSpeechTimer = null;       // corta si nunca habla
-let maxListenTimer = null;      // tope duro
-let currentAudio = null;        // <audio> TTS de fallback en curso
-let currentSource = null;       // AudioBufferSourceNode (Web Audio) en curso
+let hasSpeech = false;
+let finalTranscript = '';
+let stopRequested = false;
+let discardSession = false;
+let silenceTimer = null, noSpeechTimer = null, maxListenTimer = null;
+let currentAudio = null;     // <audio> fallback
+let currentSource = null;    // AudioBufferSourceNode (Web Audio) en curso
 
-// ────────────────────────────────────────────
-// Earcons — sonidos de mic ON / OFF (Web Audio API, sin archivos)
-// ────────────────────────────────────────────
+// ── Audio (earcons + reactividad del orbe) ──
 let audioCtx = null;
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -377,77 +361,65 @@ function getAudioCtx() {
 function beep(freq, startOffset, dur, peak) {
   try {
     const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
     osc.connect(gain); gain.connect(ctx.destination);
     const t = ctx.currentTime + startOffset;
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.start(t);
-    osc.stop(t + dur + 0.03);
-  } catch (e) { /* audio no disponible — ignorar */ }
+    osc.start(t); osc.stop(t + dur + 0.03);
+  } catch (e) {}
 }
-// ON = dos tonos que SUBEN (abrir). OFF = dos tonos que BAJAN (cerrar).
 function earconOn()  { beep(660, 0, 0.12, 0.22); beep(990, 0.10, 0.14, 0.22); }
 function earconOff() { beep(880, 0, 0.12, 0.18); beep(520, 0.10, 0.16, 0.18); }
 
-// ────────────────────────────────────────────
-// Medidor de micrófono en vivo (diagnóstico) — barra que se mueve con tu voz
-// ────────────────────────────────────────────
-let micStream = null, micAnalyser = null, micRAF = null;
+// ── Reactividad del orbe: lee un AnalyserNode y mueve --level ──
+let micStream = null, micAnalyser = null;
+let orbAnalyser = null, orbData = null, orbRAF = null;
+function setOrbAnalyser(an) {
+  orbAnalyser = an;
+  orbData = new Uint8Array(an.frequencyBinCount);
+  if (!orbRAF) {
+    const loop = () => {
+      let lvl = 0;
+      if (orbAnalyser) {
+        orbAnalyser.getByteTimeDomainData(orbData);
+        let s = 0;
+        for (let i = 0; i < orbData.length; i++) { const v = (orbData[i] - 128) / 128; s += v * v; }
+        lvl = Math.min(1, Math.sqrt(s / orbData.length) * 3.4);
+      }
+      orb.style.setProperty('--level', lvl.toFixed(3));
+      orbRAF = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+}
+function clearOrbAnalyser() {
+  orbAnalyser = null;
+  if (orbRAF) { cancelAnimationFrame(orbRAF); orbRAF = null; }
+  orb.style.setProperty('--level', '0');
+}
+
+// Mic → reactividad del orbe mientras escucha
 async function startMicMeter() {
-  const wrap = document.getElementById('micMeterWrap');
-  const bar = document.getElementById('micMeterBar');
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const ctx = getAudioCtx();
-    const src = ctx.createMediaStreamSource(micStream);
+    const srcNode = ctx.createMediaStreamSource(micStream);
     micAnalyser = ctx.createAnalyser();
     micAnalyser.fftSize = 512;
-    src.connect(micAnalyser);
-    const data = new Uint8Array(micAnalyser.frequencyBinCount);
-    if (wrap) wrap.style.display = 'block';
-    const tick = () => {
-      if (!micAnalyser) return;
-      micAnalyser.getByteTimeDomainData(data);
-      let sum = 0;
-      for (let i = 0; i < data.length; i++) { const v = (data[i] - 128) / 128; sum += v * v; }
-      const rms = Math.sqrt(sum / data.length);
-      const pct = Math.min(100, Math.round(rms * 280));
-      if (bar) {
-        bar.style.width = pct + '%';
-        bar.style.background = pct > 8 ? '#2a8b54' : 'var(--wine)';
-      }
-      micRAF = requestAnimationFrame(tick);
-    };
-    tick();
-  } catch (e) {
-    console.warn('No se pudo abrir el medidor de micrófono:', e);
-    if (wrap) wrap.style.display = 'none';
-  }
+    srcNode.connect(micAnalyser);
+    setOrbAnalyser(micAnalyser);
+  } catch (e) { console.warn('No se pudo abrir el mic para el orbe:', e); }
 }
 function stopMicMeter() {
-  if (micRAF) { cancelAnimationFrame(micRAF); micRAF = null; }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (orbAnalyser === micAnalyser) clearOrbAnalyser();
   micAnalyser = null;
-  const wrap = document.getElementById('micMeterWrap');
-  const bar = document.getElementById('micMeterBar');
-  if (wrap) wrap.style.display = 'none';
-  if (bar) bar.style.width = '0%';
 }
 
-// Detiene cualquier voz de CeVi en curso (Web Audio o <audio> fallback)
-function stopCurrentAudio() {
-  if (currentSource) { try { currentSource.onended = null; currentSource.stop(); } catch (e) {} currentSource = null; }
-  stopCurrentAudio();
-}
-
-// ────────────────────────────────────────────
-// Control de timers de escucha
-// ────────────────────────────────────────────
+// ── Timers de escucha ──
 function clearListenTimers() {
   clearTimeout(silenceTimer);  silenceTimer = null;
   clearTimeout(noSpeechTimer); noSpeechTimer = null;
@@ -457,14 +429,12 @@ function armSilenceTimer() {
   clearTimeout(silenceTimer);
   silenceTimer = setTimeout(() => stopListening('silence'), SILENCE_AFTER_SPEECH_MS);
 }
-// Apaga el mic procesando lo dicho (manual, por silencio o por timeout)
-function stopListening(reason) {
+function stopListening() {
   if (!isListening || stopRequested) return;
   stopRequested = true;
   clearListenTimers();
   try { recognition.stop(); } catch (e) {}
 }
-// Apaga el mic DESCARTANDO lo dicho (ej. el user prefirió escribir)
 function cancelListening() {
   if (!recognition || !isListening) return;
   discardSession = true;
@@ -473,22 +443,28 @@ function cancelListening() {
   try { recognition.abort(); } catch (e) {}
 }
 
-// ────────────────────────────────────────────
-// Speech recognition (con fix del bug "queda pensando")
-// ────────────────────────────────────────────
+// ── Detener cualquier voz de CeVi en curso ──
+function stopCurrentAudio() {
+  if (currentSource) { try { currentSource.onended = null; currentSource.stop(); } catch (e) {} currentSource = null; }
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  speechSynthesis.cancel();
+  clearOrbAnalyser();
+}
+
+// ════════════════════════════════════════════
+// Reconocimiento de voz
+// ════════════════════════════════════════════
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'es-MX';
-  recognition.interimResults = true;   // texto en vivo → confirma que SÍ reconoce
-  recognition.continuous = true;       // NOSOTROS controlamos el corte por silencio
+  recognition.interimResults = true;
+  recognition.continuous = true;     // controlamos el corte por silencio
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
     isListening = true;
-    // Si nunca habla, cancelar solo
     noSpeechTimer = setTimeout(() => stopListening('no-speech'), NO_SPEECH_TIMEOUT_MS);
-    // Tope duro de seguridad
     maxListenTimer = setTimeout(() => stopListening('max'), MAX_LISTEN_MS);
   };
 
@@ -496,20 +472,14 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     let interimText = '';
     finalTranscript = '';
     for (let i = 0; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalTranscript += transcript + ' ';
-      else interimText += transcript;
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalTranscript += t + ' ';
+      else interimText += t;
     }
     const shown = (finalTranscript + interimText).trim();
     if (shown) {
-      // Confirmación visual de que está reconociendo lo que decís
       interim.textContent = '"' + shown + '"';
-      if (!hasSpeech) {
-        hasSpeech = true;
-        clearTimeout(noSpeechTimer);
-        status.textContent = 'Te escucho...';
-      }
-      // Cada vez que llega voz, reinicia el contador de silencio
+      if (!hasSpeech) { hasSpeech = true; clearTimeout(noSpeechTimer); status.textContent = 'Te escucho…'; }
       armSilenceTimer();
     }
   };
@@ -520,354 +490,240 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     stopMicMeter();
     if (event.error === 'not-allowed' || event.error === 'permission-denied') {
       discardSession = true;
-      setIdle('⚠️ Chrome no tiene permiso de mic en macOS. Andá a Ajustes del Sistema → Privacidad y seguridad → Micrófono → activá Google Chrome, y reabrí Chrome.');
+      setIdle('Chrome no tiene permiso de micrófono. Actívalo en Ajustes del navegador / del sistema.');
     } else if (event.error === 'audio-capture') {
       discardSession = true;
-      setIdle('⚠️ No encuentro un micrófono activo. Revisá el dispositivo de entrada de esa Mac.');
+      setIdle('No encuentro un micrófono activo.');
     } else if (event.error === 'network') {
       discardSession = true;
-      setIdle('⚠️ Error de red con el reconocimiento de Google. Reintentá en un momento.');
+      setIdle('Problema de red con el reconocimiento. Reintenta.');
     }
-    // 'no-speech' y 'aborted' los maneja onend (normal)
   };
 
   recognition.onend = () => {
     clearListenTimers();
     stopMicMeter();
     isListening = false;
-    // Sesión cancelada (el user escribió o hubo error) → no procesar ni sonar
     if (discardSession) { discardSession = false; return; }
-
-    earconOff();                       // 🔉 sonido de mic DESACTIVADO
+    earconOff();
     const text = finalTranscript.trim();
-    if (text) {
-      interim.textContent = '';
-      handleQuery(text);               // recién ahora procesamos lo dicho
-    } else {
-      setIdle('No te escuché. Apretá y hablá, o escribí abajo.');
-    }
+    if (text) { interim.textContent = ''; handleQuery(text); }
+    else { setIdle('No te escuché. Toca y habla, o escríbeme abajo.'); }
   };
 } else {
-  status.textContent = 'Tu navegador no soporta voz. Usá el chat de abajo.';
-  btn.disabled = true;
-  btn.style.opacity = '0.4';
+  status.textContent = 'Tu navegador no soporta voz. Escríbeme abajo.';
 }
 
+// ════════════════════════════════════════════
+// Botón orbe (toggle de mic)
+// ════════════════════════════════════════════
 btn.addEventListener('click', () => {
-  if (!recognition) return;
+  if (!recognition) { chatInput.focus(); return; }
+  if (isListening) { stopListening('manual'); return; }
 
-  // TOGGLE: si ya está escuchando, este click APAGA el mic (procesa lo dicho)
-  if (isListening) {
-    stopListening('manual');
-    return;
-  }
-
-  // Cortar cualquier voz/TTS en curso
-  speechSynthesis.cancel();
   stopCurrentAudio();
-
-  // Reset del estado de la sesión de escucha
-  stopRequested = false;
-  discardSession = false;
-  hasSpeech = false;
-  finalTranscript = '';
+  stopRequested = false; discardSession = false; hasSpeech = false; finalTranscript = '';
   clearListenTimers();
 
   btn.classList.remove('thinking', 'speaking');
   btn.classList.add('listening');
-  btnLabel.innerHTML = '🎙️<br>ESCUCHO';
-  status.textContent = 'Hablá ahora...';
+  btnLabel.textContent = 'Escuchando…';
+  status.textContent = 'Habla ahora…';
   interim.textContent = '';
 
-  earconOn();                          // 🔊 sonido de mic ACTIVADO
-  startMicMeter();                     // 📊 medidor de nivel (diagnóstico)
-  try {
-    recognition.start();
-  } catch (e) {
-    // start() lanza si ya venía corriendo → resetear
-    setIdle('Error al iniciar. Apretá de nuevo.');
-  }
+  earconOn();
+  startMicMeter();
+  try { recognition.start(); }
+  catch (e) { setIdle('Error al iniciar. Toca de nuevo.'); }
 });
 
-// ────────────────────────────────────────────
-// Chat input
-// ────────────────────────────────────────────
+// ════════════════════════════════════════════
+// Escribir
+// ════════════════════════════════════════════
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
   if (!text) return;
   chatInput.value = '';
-  // Descartar el mic sin procesar la voz (el user prefirió escribir)
   cancelListening();
-  speechSynthesis.cancel();
   stopCurrentAudio();
   handleQuery(text);
 });
 
-// ────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────
+function quickAsk(text) {
+  stopCurrentAudio();
+  cancelListening();
+  handleQuery(text);
+}
+
+// ════════════════════════════════════════════
+// Helpers de estado
+// ════════════════════════════════════════════
 function setIdle(msg) {
   btn.classList.remove('listening', 'thinking', 'speaking');
-  btnLabel.innerHTML = '🎤<br>HABLAR';
-  status.textContent = msg || 'Aprietá el botón y hablale';
+  btnLabel.textContent = 'Toca para hablar';
+  status.textContent = msg || 'Toca el orbe y conversá con CeVi — o escribile abajo';
   interim.textContent = '';
-  isListening = false;
-  hasSpeech = false;
-  finalTranscript = '';
-  stopRequested = false;
+  isListening = false; hasSpeech = false; finalTranscript = ''; stopRequested = false;
   clearListenTimers();
   stopMicMeter();
 }
 
-// Normaliza texto: lowercase + sin tildes + sin signos
 function normalize(text) {
-  return text
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')  // quita tildes
-    .replace(/[¿?¡!.,;:'"()]/g, ' ')                    // quita puntuación
-    .replace(/\s+/g, ' ')                                // collapse espacios
-    .trim();
+  return text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[¿?¡!.,;:'"()]/g, ' ').replace(/\s+/g, ' ').trim();
 }
-
-// Stemming muy básico: trunca palabras largas a raíz aproximada
 function stem(word) {
   if (word.length <= 4) return word;
-  // Remove suffixes comunes en español
-  const suffixes = ['es','as','os','ar','er','ir','ado','ido','ando','iendo','mente','cion','ciones','aria','ario','idad','ista','mos','mos','an','en'];
-  for (const s of suffixes) {
-    if (word.endsWith(s) && word.length - s.length >= 4) {
-      return word.slice(0, -s.length);
-    }
-  }
+  const suffixes = ['ciones','cion','iendo','ando','mente','idad','ista','aria','ario','ado','ido','es','as','os','ar','er','ir','an','en','mos'];
+  for (const s of suffixes) if (word.endsWith(s) && word.length - s.length >= 4) return word.slice(0, -s.length);
   return word.slice(0, Math.min(word.length, 6));
 }
+function tokensOf(text) { return normalize(text).split(' ').filter(w => w.length >= 3).map(stem); }
 
-function tokensOf(text) {
-  return normalize(text).split(' ').filter(w => w.length >= 3).map(stem);
+function matchKB(transcript) {
+  const userTokens = tokensOf(transcript);
+  let best = null, bestScore = 0;
+  for (const item of KB) {
+    let score = 0;
+    const kwTokens = item.keywords.flatMap(k => tokensOf(k));
+    for (const u of userTokens) for (const k of kwTokens) {
+      if (u === k) score += 2;
+      else if (u.length >= 4 && k.length >= 4 && (u.startsWith(k) || k.startsWith(u))) score += 1;
+    }
+    if (score > bestScore) { bestScore = score; best = item; }
+  }
+  if (best && bestScore >= 2) return best.answer;
+  return "Esa no la tengo en el demo offline, pero en producción la respondo con todo el conocimiento de tu máquina.";
 }
 
+// ════════════════════════════════════════════
+// Flujo principal
+// ════════════════════════════════════════════
 async function handleQuery(transcript) {
   addMessage('user', transcript);
   btn.classList.remove('listening');
   btn.classList.add('thinking');
-  btnLabel.innerHTML = '🤔<br>PIENSO';
-  status.textContent = 'Buscando respuesta...';
+  btnLabel.textContent = 'Pensando…';
+  status.textContent = 'CeVi está pensando…';
 
-  let responseText = null;
-  let backendTTS = false;
-
-  // Si tenemos backend Railway, usar Claude real
+  let responseText = null, backendTTS = false;
   if (BACKEND_URL) {
     try {
       const r = await fetch(BACKEND_URL + '/chat', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          message: transcript,
-          machine_id: 'DEMO-9060-001',
-          customer_name: 'Carlos',
-          customer_city: 'Bogotá',
-          customer_country: 'Colombia'
-        })
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: transcript, machine_id: 'DEMO-9060-001',
+          customer_name: 'Carlos', customer_city: 'Bogotá', customer_country: 'Colombia' })
       });
       const data = await r.json();
       if (data.response) { responseText = data.response; backendTTS = true; }
       else console.warn('Backend error:', data);
-    } catch (e) {
-      console.warn('Backend offline, fallback a KB local:', e);
-    }
+    } catch (e) { console.warn('Backend offline, fallback KB:', e); }
   }
-
-  // Fallback: match local con KB hardcoded
   if (responseText === null) responseText = matchKB(transcript);
 
-  // ── Agregar la respuesta al chat UNA SOLA VEZ (separado del audio) ──
-  addMessage('cevi', responseText);
-
-  // ── Reproducir audio (NO vuelve a tocar el chat) ──
+  addMessage('cevi', responseText);                     // se agrega UNA sola vez
   if (backendTTS) await playViaBackend(responseText);
   else playBrowserTTS(responseText);
 }
 
-// Match local contra la KB hardcoded (fallback si el backend cae)
-function matchKB(transcript) {
-  const userTokens = tokensOf(transcript);
-  let bestMatch = null, bestScore = 0;
-  for (const item of KB) {
-    let score = 0;
-    const kwTokens = item.keywords.flatMap(k => tokensOf(k));
-    for (const userTok of userTokens) {
-      for (const kwTok of kwTokens) {
-        if (userTok === kwTok) score += 2;
-        else if (userTok.length >= 4 && kwTok.length >= 4 &&
-                 (userTok.startsWith(kwTok) || kwTok.startsWith(userTok))) score += 1;
-      }
-    }
-    if (score > bestScore) { bestScore = score; bestMatch = item; }
-  }
-  if (bestMatch && bestScore >= 2) return bestMatch.answer;
-  return "Esa pregunta no la tengo cargada en este demo offline, pero en producción Claude la responde con todo el conocimiento de tu máquina.";
-}
-
-// TTS server-side: descarga MP3 de Dalia mexicana del backend y lo reproduce
+// Voz del backend (Dalia) por Web Audio → reactiva el orbe y evita bloqueos de autoplay
 async function playViaBackend(text) {
   btn.classList.remove('thinking');
   btn.classList.add('speaking');
-  btnLabel.innerHTML = '🔊<br>HABLO';
-  status.textContent = 'CeVi te habla (Dalia mx)...';
-
+  btnLabel.textContent = 'CeVi habla…';
+  status.textContent = 'CeVi te responde';
   try {
     const r = await fetch(BACKEND_URL + '/tts', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text: stripMarkdown(text)})
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text: stripMarkdown(text) })
     });
     if (!r.ok) throw new Error('TTS HTTP ' + r.status);
-
-    // Reproducir por Web Audio: el AudioContext YA se desbloqueó cuando tocaste
-    // el botón (el earcon), así que esto NO lo frena el autoplay del navegador
-    // (que es lo que hacía que "no dijera nada" hasta tocar el mic de nuevo).
     const arrayBuf = await r.arrayBuffer();
     const ctx = getAudioCtx();
     const audioBuf = await ctx.decodeAudioData(arrayBuf);
     stopCurrentAudio();
     const src = ctx.createBufferSource();
     src.buffer = audioBuf;
-    src.connect(ctx.destination);
-    src.onended = () => { if (currentSource === src) { currentSource = null; setIdle(); } };
+    const an = ctx.createAnalyser(); an.fftSize = 512;
+    src.connect(an); an.connect(ctx.destination);
+    setOrbAnalyser(an);
+    src.onended = () => { if (currentSource === src) { currentSource = null; clearOrbAnalyser(); setIdle(); } };
     currentSource = src;
     src.start();
   } catch (e) {
-    console.error('Backend TTS error, fallback a TTS browser:', e);
-    playBrowserTTS(text);  // fallback voz nativa (NO re-agrega mensaje)
+    console.error('Backend TTS error, fallback navegador:', e);
+    playBrowserTTS(text);
   }
 }
 
-// Reproduce con la voz nativa del navegador. NO agrega mensaje al chat.
+// Voz nativa del navegador (fallback). NO agrega mensaje.
 function playBrowserTTS(text) {
   btn.classList.remove('thinking');
   btn.classList.add('speaking');
-  btnLabel.innerHTML = '🔊<br>HABLO';
-  status.textContent = 'CeVi te habla...';
-
-  // Verificar que TTS está disponible
-  if (!('speechSynthesis' in window)) {
-    setIdle('Tu navegador no tiene voz. La respuesta está arriba en texto.');
-    return;
-  }
-
+  btnLabel.textContent = 'CeVi habla…';
+  status.textContent = 'CeVi te responde';
+  if (!('speechSynthesis' in window)) { setIdle('Sin voz en este navegador. La respuesta está en el chat.'); return; }
   const voices = speechSynthesis.getVoices();
-  if (voices.length === 0) {
-    // Sin voces — Chrome en China sin acceso a Google Voice Engine
-    setIdle('⚠️ No hay voces TTS disponibles. Mostré la respuesta en texto. (Tocá el botón 🔊 al lado del mensaje para reintentar)');
-    return;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(stripMarkdown(text));
-  utterance.lang = 'es-MX';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;  // explícito máximo
-
-  // Preferencia: voz español femenina → cualquier español → cualquier voz
-  const preferred =
-    voices.find(v => v.lang.startsWith('es') && (v.name.includes('Mónica') || v.name.includes('Paulina') || v.name.includes('Esperanza') || v.name.toLowerCase().includes('female'))) ||
-    voices.find(v => v.lang.startsWith('es')) ||
-    voices.find(v => v.default) ||
-    voices[0];
-  if (preferred) utterance.voice = preferred;
-
-  utterance.onend = () => setIdle();
-  utterance.onerror = (e) => {
-    console.error('TTS error:', e);
-    setIdle('Error al reproducir voz. La respuesta está en texto.');
-  };
-
+  if (voices.length === 0) { setIdle('Respuesta en el chat (este navegador no tiene voces TTS).'); return; }
+  const u = new SpeechSynthesisUtterance(stripMarkdown(text));
+  u.lang = 'es-MX'; u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
+  u.voice = voices.find(v => v.lang.startsWith('es') && /m[oó]nica|paulina|esperanza|female/i.test(v.name))
+         || voices.find(v => v.lang.startsWith('es')) || voices.find(v => v.default) || voices[0];
+  u.onend = () => setIdle();
+  u.onerror = () => setIdle('Error al reproducir voz. Respuesta en el chat.');
   speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
-
-  // Safety: timeout máximo
-  setTimeout(() => {
-    if (btn.classList.contains('speaking')) setIdle();
-  }, Math.max(text.length * 80, 5000));
+  speechSynthesis.speak(u);
+  setTimeout(() => { if (btn.classList.contains('speaking')) setIdle(); }, Math.max(text.length * 80, 5000));
 }
 
-// Reproduce manualmente un mensaje de CeVi (fallback si TTS automático falló)
 function replayMessage(text, btnEl) {
-  speechSynthesis.cancel();
   stopCurrentAudio();
-  if (btnEl) btnEl.textContent = '⏵ Reproduciendo...';
+  if (btnEl) btnEl.textContent = '⏵ Reproduciendo…';
   if (BACKEND_URL) playViaBackend(text); else playBrowserTTS(text);
   setTimeout(() => { if (btnEl) btnEl.textContent = '🔊 Reproducir'; }, 1500);
 }
 
-function quickAsk(text) {
-  speechSynthesis.cancel();
-  stopCurrentAudio();
-  cancelListening();
-  handleQuery(text);
-}
-
+// ════════════════════════════════════════════
+// Render
+// ════════════════════════════════════════════
 function addMessage(role, text) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
   let html = '<div class="msg-label">' + (role === 'user' ? 'Tú' : 'CeVi') + '</div>' + renderMarkdown(text);
-  // Agregar botón "Reproducir" al lado de cada respuesta de CeVi (fallback manual TTS)
   if (role === 'cevi') {
-    html += '<div style="margin-top:8px"><button onclick="replayMessage(this.dataset.text, this)" data-text="' + escapeHtml(text).replace(/"/g, '&quot;') + '" style="background:rgba(253,244,227,0.2);border:1px solid rgba(253,244,227,0.4);color:var(--cream);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;font-family:inherit">🔊 Reproducir</button></div>';
+    html += '<div><button class="replay" onclick="replayMessage(this.dataset.text, this)" data-text="'
+          + escapeHtml(text).replace(/"/g, '&quot;') + '">🔊 Reproducir</button></div>';
   }
   div.innerHTML = html;
   conversation.appendChild(div);
   conversation.scrollTop = conversation.scrollHeight;
 }
-
-function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-// Renderiza markdown básico para el CHAT (negrita + saltos de línea).
-// Primero escapa HTML (seguro), luego aplica formato.
+function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function renderMarkdown(text) {
   let s = escapeHtml(text);
-  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');   // **negrita**
-  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');       // __negrita__
-  s = s.replace(/\n/g, '<br>');                                 // saltos de línea
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/\n/g, '<br>');
   return s;
 }
-
-// Quita el markdown para la VOZ (que Dalia no lea "asterisco").
 function stripMarkdown(text) {
-  return text
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    .replace(/[*_`#>]/g, '')
-    .replace(/[ \t]+/g, ' ')
-    .trim();
+  return text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/__([^_]+)__/g, '$1')
+    .replace(/[*_`#>]/g, '').replace(/[ \t]+/g, ' ').trim();
 }
 
-// Cargar voces disponibles al inicio (algunos navegadores las cargan async)
-let voicesLoaded = false;
-function checkVoices() {
-  const v = speechSynthesis.getVoices();
-  if (v.length > 0 && !voicesLoaded) {
-    voicesLoaded = true;
-    console.log('Voces TTS cargadas:', v.length, '— español:', v.filter(x => x.lang.startsWith('es')).length);
-  }
-}
-speechSynthesis.onvoiceschanged = checkVoices;
-checkVoices();
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    const v = speechSynthesis.getVoices();
-    if (v.length === 0) {
-      const w = document.createElement('div');
-      w.style.cssText = 'background:#fff3cd;color:#856404;padding:12px 16px;border-radius:12px;margin-bottom:16px;font-size:13px;border:1px solid #ffeaa7';
-      w.innerHTML = '⚠️ <strong>Tu navegador no tiene voces TTS instaladas.</strong> Las respuestas se muestran en texto. En la versión final, las voces vienen del backend (Edge TTS Dalia mexicana) y no dependen del navegador.';
-      document.querySelector('.card').insertBefore(w, document.querySelector('.machine-info').nextSibling);
-    }
-  }, 1500);
+// Render de chips de sugerencias (con stagger)
+SUGGESTIONS.forEach((q, i) => {
+  const c = document.createElement('div');
+  c.className = 'chip';
+  c.textContent = q;
+  c.style.animationDelay = (0.25 + i * 0.06) + 's';
+  c.addEventListener('click', () => quickAsk(q));
+  suggestions.appendChild(c);
 });
+
+// Precargar voces (algunos navegadores async)
+speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 </script>
 </body>
 </html>
