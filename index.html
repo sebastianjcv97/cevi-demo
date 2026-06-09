@@ -647,6 +647,9 @@ async function handleQuery(transcript) {
   btnLabel.innerHTML = '🤔<br>PIENSO';
   status.textContent = 'Buscando respuesta...';
 
+  let responseText = null;
+  let backendTTS = false;
+
   // Si tenemos backend Railway, usar Claude real
   if (BACKEND_URL) {
     try {
@@ -662,23 +665,28 @@ async function handleQuery(transcript) {
         })
       });
       const data = await r.json();
-      if (data.response) {
-        // Reproduzco con TTS server-side (Dalia mexicana via /tts)
-        await speakViaBackend(data.response);
-        return;
-      } else {
-        console.warn('Backend error:', data);
-      }
+      if (data.response) { responseText = data.response; backendTTS = true; }
+      else console.warn('Backend error:', data);
     } catch (e) {
       console.warn('Backend offline, fallback a KB local:', e);
     }
   }
 
   // Fallback: match local con KB hardcoded
-  const userTokens = tokensOf(transcript);
-  let bestMatch = null;
-  let bestScore = 0;
+  if (responseText === null) responseText = matchKB(transcript);
 
+  // ── Agregar la respuesta al chat UNA SOLA VEZ (separado del audio) ──
+  addMessage('cevi', responseText);
+
+  // ── Reproducir audio (NO vuelve a tocar el chat) ──
+  if (backendTTS) await playViaBackend(responseText);
+  else playBrowserTTS(responseText);
+}
+
+// Match local contra la KB hardcoded (fallback si el backend cae)
+function matchKB(transcript) {
+  const userTokens = tokensOf(transcript);
+  let bestMatch = null, bestScore = 0;
   for (const item of KB) {
     let score = 0;
     const kwTokens = item.keywords.flatMap(k => tokensOf(k));
@@ -691,19 +699,12 @@ async function handleQuery(transcript) {
     }
     if (score > bestScore) { bestScore = score; bestMatch = item; }
   }
-
-  let response;
-  if (bestMatch && bestScore >= 2) {
-    response = bestMatch.answer;
-  } else {
-    response = "Esa pregunta no la tengo cargada en este demo offline, pero en producción Claude la responde con todo el conocimiento de tu máquina.";
-  }
-  speak(response);
+  if (bestMatch && bestScore >= 2) return bestMatch.answer;
+  return "Esa pregunta no la tengo cargada en este demo offline, pero en producción Claude la responde con todo el conocimiento de tu máquina.";
 }
 
 // TTS server-side: descarga MP3 de Dalia mexicana del backend y lo reproduce
-async function speakViaBackend(text) {
-  addMessage('cevi', text);
+async function playViaBackend(text) {
   btn.classList.remove('thinking');
   btn.classList.add('speaking');
   btnLabel.innerHTML = '🔊<br>HABLO';
@@ -725,12 +726,12 @@ async function speakViaBackend(text) {
     await audio.play();
   } catch (e) {
     console.error('Backend TTS error, fallback a TTS browser:', e);
-    speak(text);  // fallback voz nativa
+    playBrowserTTS(text);  // fallback voz nativa (NO re-agrega mensaje)
   }
 }
 
-function speak(text) {
-  addMessage('cevi', text);
+// Reproduce con la voz nativa del navegador. NO agrega mensaje al chat.
+function playBrowserTTS(text) {
   btn.classList.remove('thinking');
   btn.classList.add('speaking');
   btnLabel.innerHTML = '🔊<br>HABLO';
@@ -781,8 +782,9 @@ function speak(text) {
 // Reproduce manualmente un mensaje de CeVi (fallback si TTS automático falló)
 function replayMessage(text, btnEl) {
   speechSynthesis.cancel();
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
   if (btnEl) btnEl.textContent = '⏵ Reproduciendo...';
-  speak(text);
+  if (BACKEND_URL) playViaBackend(text); else playBrowserTTS(text);
   setTimeout(() => { if (btnEl) btnEl.textContent = '🔊 Reproducir'; }, 1500);
 }
 
