@@ -188,6 +188,7 @@
   }
   .identify-card button:hover { filter: brightness(1.1); }
   .identify-card small { display: block; margin-top: 12px; color: rgba(255,255,255,0.3); font-size: 11px; }
+  .id-error { color: var(--red-bright); font-size: 12px; min-height: 16px; margin: 2px 0 6px; }
 
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
   @keyframes fadeUp   { from { opacity: 0; transform: translateY(14px); }  to { opacity: 1; transform: none; } }
@@ -244,16 +245,13 @@
   <div class="identify-card">
     <div class="mini-orb"></div>
     <h2>Hola, soy <b>CeVi</b></h2>
-    <p>Tu asistente de la máquina láser C4V. ¿Cómo te llamas? Te lo pregunto una sola vez.</p>
-    <input id="idName" placeholder="Tu nombre" autocomplete="name">
-    <select id="idCountry">
-      <option value="Perú">Perú</option>
-      <option value="Ecuador">Ecuador</option>
-      <option value="Bolivia">Bolivia</option>
-      <option value="Colombia">Colombia</option>
-    </select>
-    <button id="idGo">Empezar</button>
-    <small>Tu nombre se guarda solo en este navegador.</small>
+    <p>Para reconocerte, ingresa tu número de pedido y confirma que eres tú.</p>
+    <input id="idOrder" placeholder="N° de pedido (ej. S102374)" autocomplete="off" autocapitalize="characters">
+    <input id="idVerify" placeholder="Últimos 4 dígitos de tu teléfono o DNI" inputmode="numeric" maxlength="4" autocomplete="off">
+    <div id="idError" class="id-error"></div>
+    <button id="idGo">Ingresar</button>
+    <button id="idGuest" class="link-btn" style="margin-top:12px">Solo quiero probar (modo demo)</button>
+    <small>Verificamos tus datos contra el sistema de C4V.</small>
   </div>
 </div>
 
@@ -590,7 +588,8 @@ async function handleQuery(transcript) {
     try {
       const r = await fetch(BACKEND_URL + '/chat', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ message: transcript, history: priorHistory, machine_id: 'DEMO-9060-001',
+        body: JSON.stringify({ message: transcript, history: priorHistory,
+          machine_id: (customer && (customer.machine || customer.order)) || 'DEMO-9060-001',
           customer_name: (customer && customer.name) || 'Cliente',
           customer_city: (customer && customer.city) || '',
           customer_country: (customer && customer.country) || 'Perú',
@@ -716,8 +715,9 @@ speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 // ════════════════════════════════════════════
 let welcomeEl = document.getElementById('welcome');
 const identifyEl = document.getElementById('identify');
-const idName = document.getElementById('idName');
-const idCountry = document.getElementById('idCountry');
+const idOrder = document.getElementById('idOrder');
+const idVerify = document.getElementById('idVerify');
+const idError = document.getElementById('idError');
 
 function loadCustomer() { try { return JSON.parse(localStorage.getItem('cevi_customer') || 'null'); } catch (e) { return null; } }
 function saveCustomer(c) { try { localStorage.setItem('cevi_customer', JSON.stringify(c)); } catch (e) {} }
@@ -725,21 +725,55 @@ let customer = loadCustomer();
 
 function applyWelcome() {
   const name = customer && customer.name ? customer.name : '';
+  const maq = customer && customer.machine ? (' Veo que tienes una ' + escapeHtml(customer.machine) + '.') : '';
   welcomeEl.innerHTML = '<div class="msg-label">CeVi</div>' +
     (name ? 'Hola ' + escapeHtml(name) + ', ' : 'Hola, ') +
-    'soy CeVi, tu asistente de la máquina. Toca el orbe y pregúntame lo que quieras, o escríbeme aquí abajo.';
+    'soy CeVi, tu asistente de la máquina.' + maq +
+    ' Toca el orbe y pregúntame lo que quieras, o escríbeme aquí abajo.';
 }
-function showIdentify() { identifyEl.classList.add('show'); setTimeout(() => idName.focus(), 60); }
+function showIdentify() { identifyEl.classList.add('show'); setTimeout(() => idOrder.focus(), 60); }
 function hideIdentify() { identifyEl.classList.remove('show'); }
 
-document.getElementById('idGo').addEventListener('click', () => {
-  const name = (idName.value || '').trim() || 'Cliente';
-  customer = { name: name, city: '', country: idCountry.value };
+const idGoBtn = document.getElementById('idGo');
+idGoBtn.addEventListener('click', async () => {
+  const order = (idOrder.value || '').trim();
+  const verify = (idVerify.value || '').trim();
+  if (!order) { idError.textContent = 'Ingresa tu número de pedido.'; return; }
+  idError.style.color = 'var(--muted)'; idError.textContent = 'Verificando…';
+  idGoBtn.disabled = true;
+  try {
+    const r = await fetch(BACKEND_URL + '/identify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: order, verify: verify })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      customer = { name: d.name, id: d.partner_id, order: d.order, machine: d.machine || '', country: d.country || 'Perú' };
+      saveCustomer(customer);
+      idError.textContent = '';
+      hideIdentify();
+      applyWelcome();
+    } else {
+      idError.style.color = 'var(--red-bright)';
+      idError.textContent = d.error || 'No pudimos verificarte.';
+    }
+  } catch (e) {
+    idError.style.color = 'var(--red-bright)';
+    idError.textContent = 'Error de conexión. Intenta de nuevo.';
+  } finally {
+    idGoBtn.disabled = false;
+  }
+});
+idVerify.addEventListener('keydown', e => { if (e.key === 'Enter') idGoBtn.click(); });
+idOrder.addEventListener('keydown', e => { if (e.key === 'Enter') idVerify.focus(); });
+
+document.getElementById('idGuest').addEventListener('click', () => {
+  customer = { name: 'Invitado', id: null, country: 'Perú', guest: true };
   saveCustomer(customer);
+  idError.textContent = '';
   hideIdentify();
   applyWelcome();
 });
-idName.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('idGo').click(); });
 
 document.getElementById('changeUser').addEventListener('click', () => {
   customer = null;
@@ -749,7 +783,7 @@ document.getElementById('changeUser').addEventListener('click', () => {
   welcomeEl = document.createElement('div');
   welcomeEl.className = 'msg cevi'; welcomeEl.id = 'welcome';
   conversation.appendChild(welcomeEl);
-  idName.value = '';
+  idOrder.value = ''; idVerify.value = ''; idError.textContent = '';
   applyWelcome();
   showIdentify();
 });
